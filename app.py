@@ -230,7 +230,7 @@ def categorize():
         return jsonify({'error': 'No transactions'}), 400
 
     tx_text = '\n'.join(
-        f"{id_offset + i + 1}. {t['date']} | {t['description']} | {t['amount']}"
+        f"{i + 1}. {t['date']} | {t['description']} | {t['amount']}"
         for i, t in enumerate(transactions)
     )
 
