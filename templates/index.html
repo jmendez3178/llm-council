@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BooksAI — Smart Bookkeeping Assistant</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0d1117;
+      --surface:  #161b27;
+      --card:     #1c2333;
+      --border:   #30363d;
+      --accent:   #2ecc71;
+      --accent2:  #27ae60;
+      --red:      #e74c3c;
+      --blue:     #3498db;
+      --text:     #e6edf3;
+      --muted:    #8b949e;
+      --radius:   12px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      height: 56px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; }
+    .logo-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+    .badge { background: var(--accent); color: #000; font-size: 11px; font-weight: 700;
+             padding: 2px 8px; border-radius: 20px; }
+
+    /* ── Layout ── */
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── Left panel ── */
+    .left {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      border-right: 1px solid var(--border);
+    }
+
+    /* ── Upload zone ── */
+    .upload-zone {
+      margin: 20px;
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 28px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      flex-shrink: 0;
+    }
+    .upload-zone:hover, .upload-zone.drag { border-color: var(--accent); background: rgba(46,204,113,.05); }
+    .upload-zone.has-file { border-style: solid; border-color: var(--accent); background: rgba(46,204,113,.07); }
+    .upload-icon { font-size: 28px; margin-bottom: 8px; }
+    .upload-label { font-size: 15px; font-weight: 600; }
+    .upload-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    #fileInput { display: none; }
+
+    /* ── Summary cards ── */
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      padding: 0 20px 16px;
+      flex-shrink: 0;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+    }
+    .card-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+    .card-value { font-size: 22px; font-weight: 700; margin-top: 4px; }
+    .card-value.income  { color: var(--accent); }
+    .card-value.expense { color: var(--red); }
+    .card-value.net.pos { color: var(--accent); }
+    .card-value.net.neg { color: var(--red); }
+
+    /* ── Toolbar ── */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 20px 12px;
+      flex-shrink: 0;
+    }
+    .btn {
+      padding: 7px 16px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: opacity .15s;
+    }
+    .btn:hover { opacity: .85; }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+    .btn-primary { background: var(--accent); color: #000; }
+    .btn-ghost   { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+    .btn-sm      { padding: 5px 12px; font-size: 12px; }
+
+    /* ── Table ── */
+    .table-wrap {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0 20px 20px;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th {
+      text-align: left;
+      padding: 8px 12px;
+      background: var(--surface);
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+    td { padding: 9px 12px; border-bottom: 1px solid var(--border); }
+    tr:hover td { background: rgba(255,255,255,.03); }
+    .amt-income  { color: var(--accent); font-weight: 600; }
+    .amt-expense { color: var(--red);    font-weight: 600; }
+    .cat-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      background: rgba(52,152,219,.18);
+      color: var(--blue);
+    }
+    .cat-badge.income { background: rgba(46,204,113,.15); color: var(--accent); }
+    .cat-badge.expense { background: rgba(231,76,60,.12); color: var(--red); }
+
+    /* ── Empty / Loading states ── */
+    .empty {
+      text-align: center;
+      padding: 48px 20px;
+      color: var(--muted);
+    }
+    .empty-icon { font-size: 36px; margin-bottom: 12px; }
+    .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Chat panel ── */
+    .chat {
+      display: flex;
+      flex-direction: column;
+      background: var(--surface);
+      overflow: hidden;
+    }
+    .chat-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      font-weight: 700;
+      font-size: 15px;
+      flex-shrink: 0;
+    }
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .msg { max-width: 88%; padding: 10px 14px; border-radius: 12px; font-size: 13.5px; line-height: 1.5; }
+    .msg.user {
+      align-self: flex-end;
+      background: var(--accent);
+      color: #000;
+      border-bottom-right-radius: 4px;
+    }
+    .msg.assistant {
+      align-self: flex-start;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 4px;
+      white-space: pre-wrap;
+    }
+    .msg.typing { color: var(--muted); font-style: italic; }
+    .chat-input-row {
+      display: flex;
+      gap: 8px;
+      padding: 14px;
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .chat-input {
+      flex: 1;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      padding: 9px 12px;
+      font-size: 13px;
+      outline: none;
+      resize: none;
+      height: 40px;
+      font-family: inherit;
+    }
+    .chat-input:focus { border-color: var(--accent); }
+    .send-btn {
+      background: var(--accent);
+      border: none;
+      border-radius: 8px;
+      width: 40px;
+      cursor: pointer;
+      font-size: 18px;
+      transition: opacity .15s;
+      flex-shrink: 0;
+    }
+    .send-btn:hover { opacity: .85; }
+    .send-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+    /* ── Suggestions ── */
+    .suggestions {
+      padding: 0 16px 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .suggestion {
+      padding: 5px 12px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--muted);
+      font-size: 12px;
+      cursor: pointer;
+      transition: border-color .15s, color .15s;
+    }
+    .suggestion:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<header>
+  <div class="logo">
+    <div class="logo-dot"></div>
+    BooksAI
+    <span class="badge">BETA</span>
+  </div>
+  <span style="font-size:12px;color:var(--muted)">Powered by Claude AI &nbsp;·&nbsp; DataForSmallBiz</span>
+</header>
+
+<!-- ── Main Layout ── -->
+<div class="layout">
+
+  <!-- ── Left: Data Panel ── -->
+  <div class="left">
+
+    <!-- Upload -->
+    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+      <div class="upload-icon">📂</div>
+      <div class="upload-label" id="uploadLabel">Drop your bank statement here</div>
+      <div class="upload-sub">CSV or Excel · Bank exports, QuickBooks, any format</div>
+      <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" />
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="summary" id="summary" style="display:none">
+      <div class="card">
+        <div class="card-label">Total Income</div>
+        <div class="card-value income" id="cardIncome">$0.00</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Total Expenses</div>
+        <div class="card-value expense" id="cardExpenses">$0.00</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Net P&amp;L</div>
+        <div class="card-value net" id="cardNet">$0.00</div>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar" id="toolbar" style="display:none">
+      <button class="btn btn-primary" id="btnCategorize" onclick="categorize()">
+        ✨ Auto-Categorize
+      </button>
+      <button class="btn btn-ghost btn-sm" id="btnExport" onclick="exportCSV()" disabled>
+        ⬇ Export CSV
+      </button>
+      <span style="margin-left:auto;font-size:12px;color:var(--muted)" id="txCount"></span>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrap">
+      <div class="empty" id="emptyState">
+        <div class="empty-icon">📊</div>
+        <div>Upload a file to get started</div>
+        <div style="font-size:12px;margin-top:6px">Supports any CSV or Excel bank/accounting export</div>
+      </div>
+      <table id="txTable" style="display:none">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Description</th>
+            <th>Amount</th>
+            <th>Category</th>
+          </tr>
+        </thead>
+        <tbody id="txBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Right: Chat Panel ── -->
+  <div class="chat">
+    <div class="chat-header">💬 Ask BooksAI</div>
+
+    <div class="chat-messages" id="chatMessages">
+      <div class="msg assistant">
+        Hi! Upload your transaction file and I'll help you understand your finances. You can ask me anything — "What's my biggest expense?", "How's my cash flow?", "Which category is highest?" — I've got you covered.
+      </div>
+    </div>
+
+    <div class="suggestions" id="suggestions">
+      <div class="suggestion" onclick="askSuggestion(this)">What's my biggest expense?</div>
+      <div class="suggestion" onclick="askSuggestion(this)">Show income vs expenses</div>
+      <div class="suggestion" onclick="askSuggestion(this)">Any unusual transactions?</div>
+      <div class="suggestion" onclick="askSuggestion(this)">What's my net profit?</div>
+    </div>
+
+    <div class="chat-input-row">
+      <textarea class="chat-input" id="chatInput" placeholder="Ask about your finances…" rows="1"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat();}"></textarea>
+      <button class="send-btn" id="sendBtn" onclick="sendChat()">➤</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  let transactions  = [];
+  let categorized   = [];   // [{id, category, type}]
+  let chatHistory   = [];
+
+  // ── Upload ──────────────────────────────────────────────────────────────
+
+  const zone = document.getElementById('uploadZone');
+  zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('drag'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag');
+    const f = e.dataTransfer.files[0];
+    if (f) handleFile(f);
+  });
+  document.getElementById('fileInput').addEventListener('change', e => {
+    if (e.target.files[0]) handleFile(e.target.files[0]);
+  });
+
+  async function handleFile(file) {
+    document.getElementById('uploadLabel').innerHTML =
+      `<span class="spinner"></span> Reading ${file.name}…`;
+
+    const fd = new FormData();
+    fd.append('file', file);
+
+    try {
+      const r    = await fetch('/upload', { method: 'POST', body: fd });
+      const data = await r.json();
+      if (!r.ok || data.error) throw new Error(data.error || 'Upload failed');
+
+      transactions = data.transactions;
+      categorized  = [];
+
+      zone.classList.add('has-file');
+      document.getElementById('uploadLabel').textContent = `✓ ${file.name} · ${transactions.length} transactions`;
+      document.getElementById('summary').style.display = 'grid';
+      document.getElementById('toolbar').style.display = 'flex';
+      document.getElementById('txCount').textContent   = `${transactions.length} rows`;
+      document.getElementById('emptyState').style.display = 'none';
+      document.getElementById('txTable').style.display   = '';
+
+      renderTable();
+      updateSummary();
+
+    } catch(e) {
+      document.getElementById('uploadLabel').textContent = '⚠ ' + e.message;
+      zone.classList.remove('has-file');
+    }
+  }
+
+  // ── Render Table ─────────────────────────────────────────────────────────
+
+  function renderTable() {
+    const catMap = {};
+    categorized.forEach(c => { catMap[c.id] = c; });
+
+    const body = document.getElementById('txBody');
+    body.innerHTML = transactions.map((t, i) => {
+      const info    = catMap[i + 1] || {};
+      const cat     = info.category || '—';
+      const type    = info.type     || '';
+      const amtNum  = parseFloat((t.amount || '0').replace(/[$,]/g, '')) || 0;
+      const amtCls  = type === 'income' ? 'amt-income' : (type === 'expense' ? 'amt-expense' : '');
+      const badgeCls = `cat-badge ${type}`;
+      return `<tr>
+        <td style="color:var(--muted);white-space:nowrap">${t.date}</td>
+        <td>${t.description}</td>
+        <td class="${amtCls}">${t.amount}</td>
+        <td>${cat !== '—' ? `<span class="${badgeCls}">${cat}</span>` : '<span style="color:var(--muted)">—</span>'}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  // ── Summary Cards ────────────────────────────────────────────────────────
+
+  function updateSummary() {
+    const catMap = {};
+    categorized.forEach(c => { catMap[c.id] = c; });
+
+    let income = 0, expenses = 0;
+    transactions.forEach((t, i) => {
+      const amt  = parseFloat((t.amount || '0').replace(/[$,]/g, '')) || 0;
+      const info = catMap[i + 1] || {};
+      const type = info.type || (amt >= 0 ? 'income' : 'expense');
+      if (type === 'income')  income   += Math.abs(amt);
+      else                    expenses += Math.abs(amt);
+    });
+
+    const net    = income - expenses;
+    const netEl  = document.getElementById('cardNet');
+    document.getElementById('cardIncome').textContent   = fmt(income);
+    document.getElementById('cardExpenses').textContent = fmt(expenses);
+    netEl.textContent = fmt(net);
+    netEl.className   = `card-value net ${net >= 0 ? 'pos' : 'neg'}`;
+  }
+
+  function fmt(n) {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
+  }
+
+  // ── Categorize ───────────────────────────────────────────────────────────
+
+  async function categorize() {
+    if (!transactions.length) return;
+    const btn = document.getElementById('btnCategorize');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Categorizing…';
+
+    try {
+      const r    = await fetch('/categorize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ transactions }),
+      });
+      const data = await r.json();
+      if (data.error) throw new Error(data.error);
+
+      categorized = data.categories;
+      renderTable();
+      updateSummary();
+      document.getElementById('btnExport').disabled = false;
+      btn.innerHTML = '✅ Categorized';
+      btn.classList.replace('btn-primary', 'btn-ghost');
+
+      addMessage('assistant', `Done! I've categorized all ${transactions.length} transactions. You can now ask me anything about your finances or export the results.`);
+
+    } catch(e) {
+      btn.innerHTML = '✨ Auto-Categorize';
+      btn.disabled  = false;
+      addMessage('assistant', `Sorry, I ran into an error: ${e.message}`);
+    }
+  }
+
+  // ── Export ───────────────────────────────────────────────────────────────
+
+  function exportCSV() {
+    const catMap = {};
+    categorized.forEach(c => { catMap[c.id] = c; });
+
+    const rows = [['Date','Description','Amount','Category','Type']];
+    transactions.forEach((t, i) => {
+      const info = catMap[i + 1] || {};
+      rows.push([t.date, t.description, t.amount, info.category || '', info.type || '']);
+    });
+
+    const csv  = rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = 'booksai-categorized.csv'; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ── Chat ─────────────────────────────────────────────────────────────────
+
+  async function sendChat() {
+    const input = document.getElementById('chatInput');
+    const msg   = input.value.trim();
+    if (!msg) return;
+
+    input.value = '';
+    addMessage('user', msg);
+
+    const typing = addMessage('assistant', '…', true);
+    document.getElementById('sendBtn').disabled = true;
+
+    try {
+      const r    = await fetch('/chat', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ message: msg, transactions, categorized, history: chatHistory }),
+      });
+      const data = await r.json();
+      if (data.error) throw new Error(data.error);
+
+      typing.remove();
+      const reply = addMessage('assistant', data.reply);
+      chatHistory.push({ role: 'user',      content: msg        });
+      chatHistory.push({ role: 'assistant', content: data.reply });
+      if (chatHistory.length > 24) chatHistory = chatHistory.slice(-24);
+
+    } catch(e) {
+      typing.remove();
+      addMessage('assistant', `Sorry, something went wrong: ${e.message}`);
+    }
+
+    document.getElementById('sendBtn').disabled = false;
+  }
+
+  function addMessage(role, text, isTyping = false) {
+    const el   = document.createElement('div');
+    el.className = `msg ${role}${isTyping ? ' typing' : ''}`;
+    el.textContent = text;
+    const box  = document.getElementById('chatMessages');
+    box.appendChild(el);
+    box.scrollTop = box.scrollHeight;
+    return el;
+  }
+
+  function askSuggestion(el) {
+    document.getElementById('chatInput').value = el.textContent;
+    sendChat();
+  }
+</script>
+</body>
+</html>
