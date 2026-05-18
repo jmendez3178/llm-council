@@ -29,6 +29,9 @@
   .btn-suspend{border-color:var(--expense);color:var(--expense)}
   .btn-activate{border-color:var(--accent);color:var(--accent)}
   .btn-delete{border-color:var(--muted);color:var(--muted)}
+  .btn-pay{border-color:#388bfd;color:#388bfd}
+  .copy-link{background:#161b22;border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:11px;color:var(--muted);word-break:break-all;margin-top:6px;display:none}
+  .copy-link.show{display:block}
   .form-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:22px}
   .form-row{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end}
   label{display:block;font-size:12px;font-weight:500;color:var(--muted);margin-bottom:5px}
@@ -109,6 +112,7 @@
                   <button type="submit" class="btn btn-activate">Activate</button>
                 </form>
               {% endif %}
+              <button class="btn btn-pay" onclick="getPayLink({{ u.id }}, this)">💳 Pay Link</button>
               <form method="POST" action="/admin/users/{{ u.id }}/delete" style="display:inline"
                     onsubmit="return confirm('Delete {{ u.name or u.email }} and all their data?')">
                 <button type="submit" class="btn btn-delete">Delete</button>
@@ -155,5 +159,37 @@
   </div>
 
 </div>
+<script>
+async function getPayLink(uid, btn) {
+  btn.disabled = true;
+  btn.textContent = 'Loading…';
+  try {
+    const r = await fetch(`/admin/users/${uid}/payment-link`, {method:'POST'});
+    const d = await r.json();
+    if (!r.ok) {
+      alert(d.error || 'Failed to generate payment link.');
+      btn.disabled = false; btn.textContent = '💳 Pay Link';
+      return;
+    }
+    // Show copyable link below the button row
+    const td = btn.closest('td');
+    let box = td.querySelector('.copy-link');
+    if (!box) {
+      box = document.createElement('div');
+      box.className = 'copy-link';
+      box.onclick = () => { navigator.clipboard.writeText(box.dataset.url); box.textContent = '✅ Copied!'; setTimeout(()=>{ box.textContent = box.dataset.url; }, 1500); };
+      td.appendChild(box);
+    }
+    box.dataset.url = d.url;
+    box.textContent = d.url;
+    box.classList.add('show');
+    box.title = 'Click to copy';
+    box.style.cursor = 'pointer';
+  } catch(e) {
+    alert('Network error.');
+  }
+  btn.disabled = false; btn.textContent = '💳 Pay Link';
+}
+</script>
 </body>
 </html>

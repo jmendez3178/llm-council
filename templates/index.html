@@ -5,234 +5,357 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BooksAI — Smart Bookkeeping</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.4/styles/ag-grid.min.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.4/styles/ag-theme-alpine-dark.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.4/styles/ag-theme-alpine.min.css">
 <script src="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.4/dist/ag-grid-community.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#0d1117;--surface:#161b22;--surface2:#1c2128;
-  --border:#30363d;--text:#e6edf3;--muted:#7d8590;
-  --accent:#10b981;--income:#3fb950;--expense:#f85149;
-  --warning:#d29922;--info:#388bfd;
-  --sidebar:56px;--ai:320px;
+  --bg:#F8F7F4;
+  --surface:#FFFFFF;
+  --surface2:#F3F2EE;
+  --border:#E8E5E0;
+  --border-focus:#0C6E5C;
+  --text:#1A1A1A;
+  --muted:#6B7280;
+  --subtle:#9CA3AF;
+  --accent:#0C6E5C;
+  --accent-light:#E6F4F1;
+  --accent-hover:#0A5C4D;
+  --income:#16A34A;
+  --income-bg:#DCFCE7;
+  --expense:#DC2626;
+  --expense-bg:#FEE2E2;
+  --warning:#D97706;
+  --warning-bg:#FEF3C7;
+  --info:#3B82F6;
+  --info-bg:#DBEAFE;
+  --shadow-sm:0 1px 3px rgba(0,0,0,0.06),0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md:0 4px 6px rgba(0,0,0,0.05),0 2px 4px rgba(0,0,0,0.04);
+  --radius:10px;
+  --sidebar:220px;
+  --ai:300px;
 }
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;display:flex}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;display:flex;font-size:14px;line-height:1.5}
 
 /* ── Sidebar ── */
-.sidebar{width:var(--sidebar);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:4px;flex-shrink:0;z-index:10}
-.logo{width:36px;height:36px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;font-weight:700;font-size:14px;color:#000;flex-shrink:0}
-.nav-item{width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;color:var(--muted);transition:all .15s;border:none;background:none}
+.sidebar{width:var(--sidebar);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:20px 12px 12px;gap:2px;flex-shrink:0;z-index:10;box-shadow:1px 0 0 var(--border)}
+.logo-wrap{display:flex;align-items:center;gap:10px;padding:0 8px 20px;margin-bottom:4px}
+.logo{width:34px;height:34px;background:var(--accent);border-radius:9px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;color:#fff;flex-shrink:0}
+.logo-name{font-size:16px;font-weight:700;color:var(--text);letter-spacing:-.3px}
+.logo-tag{font-size:10px;color:var(--muted);font-weight:500}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;cursor:pointer;color:var(--muted);transition:all .15s;border:none;background:none;width:100%;text-align:left;font-size:13.5px;font-weight:500;font-family:inherit}
 .nav-item:hover{background:var(--surface2);color:var(--text)}
-.nav-item.active{background:rgba(16,185,129,.15);color:var(--accent);box-shadow:inset 2px 0 0 var(--accent)}
-.nav-item svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.nav-tooltip{position:absolute;left:52px;background:#1f2937;color:var(--text);font-size:12px;padding:4px 8px;border-radius:4px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s;z-index:100;border:1px solid var(--border)}
-.nav-item:hover .nav-tooltip{opacity:1}
+.nav-item.active{background:var(--accent);color:#fff}
+.nav-item svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
 .sidebar-spacer{flex:1}
+.sidebar-footer{padding:10px 8px;border-top:1px solid var(--border);margin-top:8px}
+.sidebar-footer a{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);text-decoration:none;padding:6px 2px}
+.sidebar-footer a:hover{color:var(--text)}
+
+/* ── Payroll tabs ── */
+.payroll-tab{background:none;border:none;border-bottom:2px solid transparent;padding:8px 16px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;font-family:inherit;transition:all .15s;margin-bottom:-1px}
+.payroll-tab:hover{color:var(--text)}
+.payroll-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* ── Expenses cross-connect ── */
+.exp-kpi-strip{display:flex;align-items:center;gap:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:14px;overflow:hidden}
+.exp-kpi{padding:14px 20px;border-right:1px solid var(--border);min-width:140px}
+.exp-kpi:last-child{border-right:none;flex:1}
+.exp-kpi-val{font-size:20px;font-weight:700;color:var(--text)}
+.exp-kpi-lbl{font-size:11px;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:.4px}
+.exp-kpi-src{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:10px 20px}
+.src-chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;padding:4px 10px;border-radius:10px}
+.src-chip.expense{background:var(--expense-bg);color:var(--expense)}
+.src-chip.transaction{background:var(--info-bg);color:var(--info)}
+.src-chip.payroll{background:var(--income-bg);color:var(--income)}
+
+.exp-filter-bar{display:flex;flex-wrap:wrap;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:14px;align-items:flex-end}
+.exp-filter-group{display:flex;flex-direction:column;gap:4px;min-width:140px}
+.exp-filter-group label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.exp-filter-group input,.exp-filter-group select{font-size:13px;padding:6px 10px;border:1px solid var(--border);border-radius:7px;background:var(--bg);color:var(--text);outline:none;font-family:inherit}
+.exp-filter-group input:focus,.exp-filter-group select:focus{border-color:var(--accent)}
+
+.exp-add-details summary::-webkit-details-marker{display:none}
+.exp-add-details summary{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:7px 14px;font-size:13px;font-weight:500;color:var(--muted);margin-bottom:4px;transition:all .15s}
+.exp-add-details summary:hover{color:var(--text);border-color:var(--accent)}
+
+/* Source badge in grid */
+.src-badge{display:inline-flex;align-items:center;font-size:11px;font-weight:600;padding:2px 8px;border-radius:8px}
+.src-badge-expense{background:var(--expense-bg);color:var(--expense)}
+.src-badge-transaction{background:var(--info-bg);color:var(--info)}
+.src-badge-payroll{background:var(--income-bg);color:var(--income)}
 
 /* ── Main ── */
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
-.topbar{height:52px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px;flex-shrink:0}
-.topbar-title{font-size:15px;font-weight:600;color:var(--text)}
-.topbar-sub{font-size:12px;color:var(--muted)}
+.topbar{height:56px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:12px;flex-shrink:0}
+.topbar-title{font-size:16px;font-weight:700;color:var(--text);letter-spacing:-.3px}
+.topbar-sub{font-size:12px;color:var(--muted);margin-top:1px}
 .topbar-spacer{flex:1}
-.badge-beta{background:rgba(16,185,129,.15);color:var(--accent);font-size:10px;font-weight:600;padding:2px 6px;border-radius:10px;border:1px solid rgba(16,185,129,.3)}
-.content{flex:1;overflow-y:auto;padding:20px}
+.topbar-user{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--muted);font-weight:500;cursor:pointer;position:relative;user-select:none;padding:4px 8px;border-radius:8px;transition:background .15s}
+.topbar-user:hover{background:var(--surface2)}
+.topbar-user .avatar{width:28px;height:28px;background:var(--accent-light);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--accent)}
+.user-menu{display:none;position:absolute;top:calc(100% + 6px);right:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;min-width:170px;padding:4px;z-index:300;box-shadow:0 8px 24px rgba(0,0,0,.45)}
+.user-menu.open{display:block}
+.user-menu a{display:flex;align-items:center;gap:8px;padding:8px 12px;font-size:13px;color:var(--text);text-decoration:none;border-radius:5px;cursor:pointer;transition:background .12s}
+.user-menu a:hover{background:var(--surface2)}
+.user-menu hr{border:none;border-top:1px solid var(--border);margin:3px 0}
+.content{flex:1;overflow-y:auto;padding:24px}
 
 /* ── Modules ── */
 .module{display:none}
 .module.active{display:block}
 
-/* ── Cards ── */
-.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
-.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px}
-.kpi-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
-.kpi-val{font-size:22px;font-weight:700}
+/* ── KPI Cards ── */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow-sm);transition:box-shadow .15s}
+.kpi-card:hover{box-shadow:var(--shadow-md)}
+.kpi-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;margin-bottom:12px}
+.kpi-icon.green{background:var(--income-bg)}
+.kpi-icon.red{background:var(--expense-bg)}
+.kpi-icon.teal{background:var(--accent-light)}
+.kpi-icon.amber{background:var(--warning-bg)}
+.kpi-label{font-size:12px;color:var(--muted);font-weight:500;margin-bottom:4px}
+.kpi-val{font-size:24px;font-weight:700;letter-spacing:-.5px}
 .kpi-val.income{color:var(--income)}
 .kpi-val.expense{color:var(--expense)}
 .kpi-val.net-pos{color:var(--income)}
 .kpi-val.net-neg{color:var(--expense)}
 .kpi-val.warn{color:var(--warning)}
-.kpi-sub{font-size:11px;color:var(--muted);margin-top:4px}
+.kpi-sub{font-size:11px;color:var(--muted);margin-top:4px;font-weight:500}
 
 /* ── Charts ── */
-.charts-row{display:grid;grid-template-columns:3fr 2fr;gap:12px;margin-bottom:20px}
-.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px}
-.chart-title{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px}
+.charts-row{display:grid;grid-template-columns:3fr 2fr;gap:14px;margin-bottom:20px}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow-sm)}
+.chart-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.chart-title span{font-size:11px;color:var(--muted);font-weight:400}
 .chart-wrap{position:relative;height:200px}
 
 /* ── Toolbar ── */
-.toolbar{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}
-.btn{padding:6px 12px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text);transition:all .15s;display:inline-flex;align-items:center;gap:5px}
-.btn:hover{background:var(--surface2);border-color:var(--muted)}
-.btn-accent{background:var(--accent);border-color:var(--accent);color:#000;font-weight:600}
-.btn-accent:hover{opacity:.9}
-.btn-sm{padding:4px 8px;font-size:11px}
-.btn-danger{color:var(--expense);border-color:rgba(248,81,73,.3)}
-.btn-danger:hover{background:rgba(248,81,73,.1)}
+.toolbar{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.btn{padding:7px 14px;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text);transition:all .15s;display:inline-flex;align-items:center;gap:6px;font-family:inherit;line-height:1.4}
+.btn:hover{background:var(--surface2);border-color:var(--border-focus)}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.btn-primary:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
+.btn-accent{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.btn-accent:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
+.btn-sm{padding:5px 10px;font-size:12px;border-radius:6px}
+.btn-danger{color:var(--expense);border-color:rgba(220,38,38,.25);background:var(--expense-bg)}
+.btn-danger:hover{background:#FCA5A5;border-color:var(--expense)}
+.btn-ghost{background:transparent;border-color:transparent;color:var(--muted)}
+.btn-ghost:hover{background:var(--surface2);border-color:var(--border);color:var(--text)}
 .spacer{flex:1}
 
 /* ── AG Grid wrapper ── */
-.grid-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden}
-.grid-wrap .ag-theme-alpine-dark{--ag-background-color:#161b22;--ag-header-background-color:#1c2128;--ag-odd-row-background-color:#1a2029;--ag-border-color:#30363d;--ag-row-hover-color:#1f2d3d;--ag-selected-row-background-color:rgba(16,185,129,.1);--ag-font-size:13px}
+.grid-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm)}
+.grid-wrap .ag-theme-alpine{--ag-font-family:'Inter',system-ui,sans-serif;--ag-font-size:13px;--ag-background-color:#fff;--ag-header-background-color:#F8F7F4;--ag-odd-row-background-color:#FDFCFB;--ag-row-hover-color:#F0F9F7;--ag-selected-row-background-color:rgba(12,110,92,.07);--ag-border-color:#E8E5E0;--ag-header-foreground-color:#6B7280;--ag-data-color:#1A1A1A}
 
 /* ── Table ── */
 .tbl{width:100%;border-collapse:collapse;font-size:13px}
-.tbl th{padding:8px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);white-space:nowrap}
-.tbl td{padding:8px 12px;border-bottom:1px solid rgba(48,54,61,.5);vertical-align:middle}
+.tbl th{padding:10px 14px;text-align:left;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);background:var(--surface2);white-space:nowrap}
+.tbl td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:middle;color:var(--text)}
 .tbl tr:last-child td{border-bottom:none}
-.tbl tr:hover td{background:rgba(255,255,255,.02)}
-.tbl-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.tbl tr:hover td{background:var(--accent-light)}
+.tbl-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm)}
 
 /* ── Badges ── */
-.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500}
-.badge-income{background:rgba(63,185,80,.15);color:var(--income);border:1px solid rgba(63,185,80,.3)}
-.badge-expense{background:rgba(248,81,73,.15);color:var(--expense);border:1px solid rgba(248,81,73,.3)}
-.badge-draft{background:rgba(125,133,144,.15);color:var(--muted);border:1px solid rgba(125,133,144,.3)}
-.badge-sent{background:rgba(56,139,253,.15);color:var(--info);border:1px solid rgba(56,139,253,.3)}
-.badge-paid{background:rgba(63,185,80,.15);color:var(--income);border:1px solid rgba(63,185,80,.3)}
-.badge-overdue{background:rgba(248,81,73,.15);color:var(--expense);border:1px solid rgba(248,81,73,.3)}
-.badge-pending{background:rgba(210,153,34,.15);color:var(--warning);border:1px solid rgba(210,153,34,.3)}
-.badge-approved{background:rgba(63,185,80,.15);color:var(--income);border:1px solid rgba(63,185,80,.3)}
-.badge-active{background:rgba(16,185,129,.15);color:var(--accent);border:1px solid rgba(16,185,129,.3)}
+.badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.1px}
+.badge-income{background:var(--income-bg);color:var(--income)}
+.badge-expense{background:var(--expense-bg);color:var(--expense)}
+.badge-draft{background:#F3F4F6;color:#6B7280}
+.badge-sent{background:var(--info-bg);color:var(--info)}
+.badge-paid{background:var(--income-bg);color:var(--income)}
+.badge-overdue{background:var(--expense-bg);color:var(--expense)}
+.badge-pending{background:var(--warning-bg);color:var(--warning)}
+.badge-approved{background:var(--income-bg);color:var(--income)}
+.badge-active{background:var(--accent-light);color:var(--accent)}
+.badge-warning{background:var(--warning-bg);color:var(--warning)}
+.badge-beta{background:var(--accent-light);color:var(--accent);font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;letter-spacing:.5px}
 
 /* ── Forms ── */
-.form-row{display:grid;gap:10px;margin-bottom:10px}
+.form-row{display:grid;gap:12px;margin-bottom:12px}
 .form-row.cols-2{grid-template-columns:1fr 1fr}
 .form-row.cols-3{grid-template-columns:1fr 1fr 1fr}
-.form-group{display:flex;flex-direction:column;gap:4px}
-.form-group label{font-size:11px;color:var(--muted);font-weight:500}
-input,select,textarea{background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:7px 10px;font-size:13px;width:100%;outline:none;font-family:inherit}
-input:focus,select:focus,textarea:focus{border-color:var(--accent)}
-select option{background:var(--surface2)}
-textarea{resize:vertical;min-height:60px}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-group label{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.2px}
+input,select,textarea{background:var(--surface);border:1.5px solid var(--border);border-radius:7px;color:var(--text);padding:8px 11px;font-size:13px;width:100%;outline:none;font-family:inherit;transition:border-color .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--border-focus);box-shadow:0 0 0 3px rgba(12,110,92,.08)}
+select option{background:var(--surface)}
+textarea{resize:vertical;min-height:64px}
 
-/* ── Sections ── */
-.section-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px}
-.section-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:8px}
-.section-title span{font-size:11px;color:var(--muted);font-weight:400}
+/* ── Section cards ── */
+.section-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px;box-shadow:var(--shadow-sm)}
+.section-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.section-title span{font-size:12px;color:var(--muted);font-weight:400}
 
 /* ── P&L Table ── */
-.pl-table{width:100%;border-collapse:collapse;font-size:12px}
-.pl-table th{padding:6px 10px;text-align:right;font-size:11px;color:var(--muted);font-weight:500;border-bottom:1px solid var(--border);white-space:nowrap}
-.pl-table th:first-child{text-align:left;min-width:180px}
-.pl-table td{padding:6px 10px;text-align:right;border-bottom:1px solid rgba(48,54,61,.4);white-space:nowrap}
-.pl-table td:first-child{text-align:left;color:var(--text);padding-left:20px}
-.pl-section-header td{background:var(--surface2);color:var(--muted);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;padding:8px 10px!important;padding-left:10px!important}
-.pl-total td{font-weight:700;border-top:2px solid var(--border);border-bottom:2px solid var(--border)}
-.pl-total td:first-child{padding-left:10px}
-.pl-net td{font-size:14px;font-weight:700;border-top:2px solid var(--border);padding-top:10px}
-.pl-net td:first-child{padding-left:10px}
+.pl-table{width:100%;border-collapse:collapse;font-size:13px}
+.pl-table th{padding:8px 12px;text-align:right;font-size:11px;color:var(--muted);font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;background:var(--surface2)}
+.pl-table th:first-child{text-align:left;min-width:200px}
+.pl-table td{padding:7px 12px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap}
+.pl-table td:first-child{text-align:left;color:var(--text);padding-left:24px}
+.pl-section-header td{background:#F3F2EE;color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;padding:9px 12px!important;padding-left:12px!important;border-bottom:1px solid var(--border)}
+.pl-total td{font-weight:700;border-top:2px solid var(--border);border-bottom:2px solid var(--border);background:#FAFAF8}
+.pl-total td:first-child{padding-left:12px}
+.pl-net td{font-size:15px;font-weight:700;border-top:2px solid var(--accent);padding-top:12px;background:var(--accent-light)}
+.pl-net td:first-child{padding-left:12px;color:var(--accent)}
 .pl-controls{display:flex;gap:10px;align-items:center;margin-bottom:16px}
 
 /* ── Invoice layout ── */
 .inv-layout{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
-.inv-list-item{padding:12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:border-color .15s;margin-bottom:8px}
-.inv-list-item:hover{border-color:var(--accent)}
-.inv-list-item.selected{border-color:var(--accent);background:rgba(16,185,129,.05)}
-.inv-number{font-weight:600;font-size:13px}
-.inv-client{font-size:12px;color:var(--muted)}
-.inv-amount{font-size:14px;font-weight:700;color:var(--income)}
-.inv-meta{display:flex;align-items:center;gap:8px;margin-top:4px}
-.line-items-table{width:100%;border-collapse:collapse;font-size:12px;margin:8px 0}
-.line-items-table th{padding:6px 8px;background:var(--surface2);font-size:11px;color:var(--muted);font-weight:500;text-align:left;border-bottom:1px solid var(--border)}
-.line-items-table td{padding:6px 4px;border-bottom:1px solid rgba(48,54,61,.4)}
-.line-items-table input{padding:4px 6px;font-size:12px}
-.inv-totals{background:var(--surface2);border-radius:6px;padding:10px 12px;margin-top:8px;font-size:13px}
-.inv-totals-row{display:flex;justify-content:space-between;padding:3px 0}
-.inv-totals-row.total{font-weight:700;font-size:15px;border-top:1px solid var(--border);margin-top:6px;padding-top:6px;color:var(--accent)}
+.inv-list-item{padding:14px 16px;border:1.5px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:all .15s;margin-bottom:8px;background:var(--surface)}
+.inv-list-item:hover{border-color:var(--accent);box-shadow:var(--shadow-sm)}
+.inv-list-item.selected{border-color:var(--accent);background:var(--accent-light)}
+.inv-number{font-weight:700;font-size:13px;color:var(--text)}
+.inv-client{font-size:12px;color:var(--muted);margin-top:2px}
+.inv-amount{font-size:15px;font-weight:700;color:var(--income)}
+.inv-meta{display:flex;align-items:center;gap:8px;margin-top:6px}
+.line-items-table{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0}
+.line-items-table th{padding:7px 10px;background:var(--surface2);font-size:11px;color:var(--muted);font-weight:600;text-align:left;border-bottom:1px solid var(--border)}
+.line-items-table td{padding:5px 4px;border-bottom:1px solid var(--border)}
+.line-items-table input{padding:5px 7px;font-size:13px}
+.inv-totals{background:var(--surface2);border-radius:8px;padding:12px 14px;margin-top:10px;font-size:13px}
+.inv-totals-row{display:flex;justify-content:space-between;padding:4px 0}
+.inv-totals-row.total{font-weight:700;font-size:15px;border-top:1px solid var(--border);margin-top:6px;padding-top:8px;color:var(--accent)}
 
-/* ── Payroll layout ── */
+/* ── Payroll ── */
 .payroll-layout{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
 
 /* ── Marketing KPIs ── */
-.mkt-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px}
-.mkt-kpi{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center}
-.mkt-kpi-val{font-size:18px;font-weight:700;margin-bottom:2px}
-.mkt-kpi-label{font-size:11px;color:var(--muted)}
+.mkt-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:18px}
+.mkt-kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;text-align:center;box-shadow:var(--shadow-sm)}
+.mkt-kpi-val{font-size:20px;font-weight:700;margin-bottom:3px;color:var(--text)}
+.mkt-kpi-label{font-size:11px;color:var(--muted);font-weight:500}
 
 /* ── AI Panel ── */
 .ai-panel{width:var(--ai);background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
-.ai-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
-.ai-dot{width:8px;height:8px;background:var(--accent);border-radius:50%}
-.ai-title{font-size:13px;font-weight:600}
-.ai-module-badge{font-size:10px;color:var(--muted);background:var(--surface2);padding:2px 6px;border-radius:10px;margin-left:auto}
-.ai-messages{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px}
-.msg{padding:8px 10px;border-radius:8px;font-size:12px;line-height:1.6;max-width:100%}
-.msg.user{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);align-self:flex-end;color:var(--text)}
-.msg.assistant{background:var(--surface2);border:1px solid var(--border);color:var(--text)}
-.msg strong{color:var(--accent)}
-.ai-chips{padding:8px 12px;display:flex;flex-wrap:wrap;gap:6px;border-top:1px solid var(--border)}
-.chip{padding:4px 8px;border-radius:12px;font-size:11px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap}
-.chip:hover{border-color:var(--accent);color:var(--accent)}
-.ai-input-row{padding:10px 12px;border-top:1px solid var(--border);display:flex;gap:6px}
-.ai-input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:7px 10px;font-size:12px;outline:none;resize:none;font-family:inherit;height:36px}
-.ai-input:focus{border-color:var(--accent)}
-.ai-send{width:34px;height:34px;background:var(--accent);border:none;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.ai-send svg{width:14px;height:14px;fill:#000;stroke:none}
+.ai-header{padding:16px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:var(--surface)}
+.ai-dot{width:8px;height:8px;background:var(--accent);border-radius:50%;flex-shrink:0}
+.ai-title{font-size:14px;font-weight:700;color:var(--text)}
+.ai-module-badge{font-size:11px;color:var(--muted);background:var(--surface2);padding:2px 8px;border-radius:10px;margin-left:auto;font-weight:500}
+.ai-messages{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+.msg{padding:10px 12px;border-radius:10px;font-size:13px;line-height:1.6;max-width:100%}
+.msg.user{background:var(--accent);color:#fff;align-self:flex-end;border-radius:10px 10px 3px 10px}
+.msg.assistant{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:10px 10px 10px 3px}
+.msg strong{color:var(--accent-hover)}
+.msg.user strong{color:#fff;text-decoration:underline}
+.ai-chips{padding:10px 14px;display:flex;flex-wrap:wrap;gap:6px;border-top:1px solid var(--border)}
+.chip{padding:5px 10px;border-radius:20px;font-size:11px;border:1.5px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap;font-weight:500}
+.chip:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light)}
+.ai-input-row{padding:12px 14px;border-top:1px solid var(--border);display:flex;gap:8px;background:var(--surface)}
+.ai-input{flex:1;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);padding:8px 11px;font-size:13px;outline:none;resize:none;font-family:inherit;height:38px;transition:border-color .15s}
+.ai-input:focus{border-color:var(--border-focus)}
+.ai-send{width:38px;height:38px;background:var(--accent);border:none;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s}
+.ai-send:hover{background:var(--accent-hover)}
+.ai-send svg{width:15px;height:15px;fill:#fff;stroke:none}
 
 /* ── Modals ── */
-.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000;display:none;align-items:center;justify-content:center;backdrop-filter:blur(6px)}
 .modal-bg.open{display:flex}
-.modal{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;width:90%;max-width:640px;max-height:85vh;overflow-y:auto}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;width:90%;max-width:640px;max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.15)}
 .modal-wide{max-width:860px}
-.modal-header{display:flex;align-items:center;margin-bottom:16px}
-.modal-title{font-size:15px;font-weight:600}
-.modal-close{margin-left:auto;background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;line-height:1}
-.modal-close:hover{color:var(--text)}
+.modal-header{display:flex;align-items:center;margin-bottom:18px}
+.modal-title{font-size:16px;font-weight:700;color:var(--text)}
+.modal-close{margin-left:auto;background:var(--surface2);border:1px solid var(--border);color:var(--muted);cursor:pointer;font-size:15px;line-height:1;width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.modal-close:hover{background:var(--expense-bg);color:var(--expense);border-color:var(--expense)}
 
 /* ── Empty state ── */
-.empty{text-align:center;padding:40px;color:var(--muted)}
-.empty-icon{font-size:32px;margin-bottom:8px}
-.empty p{font-size:13px}
+.empty{text-align:center;padding:48px 24px;color:var(--muted)}
+.empty-icon{font-size:40px;margin-bottom:12px}
+.empty h3{font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px}
+.empty p{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:16px}
 
 /* ── Quick-add bar ── */
-.quick-add{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px;display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
+.quick-add{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:14px;display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;box-shadow:var(--shadow-sm)}
 .quick-add .form-group{flex:1;min-width:100px}
-.quick-add .form-group label{font-size:10px}
+.quick-add .form-group label{font-size:11px}
 
-/* ── Amt colors ── */
-.amt-inc{color:var(--income)}
-.amt-exp{color:var(--expense)}
+/* ── Amounts ── */
+.amt-inc{color:var(--income);font-weight:600}
+.amt-exp{color:var(--expense);font-weight:600}
 
-/* Spinner */
+/* ── Import tabs ── */
+.import-tabs{display:flex;gap:4px;margin-bottom:18px;background:var(--surface2);padding:4px;border-radius:9px}
+.import-tab{flex:1;padding:8px;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:none;color:var(--muted);transition:all .15s;text-align:center}
+.import-tab.active{background:var(--surface);color:var(--text);box-shadow:var(--shadow-sm);font-weight:600}
+.import-pane{display:none}
+.import-pane.active{display:block}
+.upload-zone{border:2px dashed var(--border);border-radius:10px;padding:32px;text-align:center;cursor:pointer;transition:all .15s;background:var(--surface2)}
+.upload-zone:hover{border-color:var(--accent);background:var(--accent-light)}
+.upload-zone.dragover{border-color:var(--accent);background:var(--accent-light)}
+.upload-icon{font-size:32px;margin-bottom:8px}
+.upload-zone h4{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px}
+.upload-zone p{font-size:12px;color:var(--muted)}
+
+/* ── Spinner ── */
 @keyframes spin{to{transform:rotate(360deg)}}
-.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.2);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(0,0,0,.1);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:4px}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#D1D5DB;border-radius:10px}
+::-webkit-scrollbar-thumb:hover{background:#9CA3AF}
 </style>
 </head>
 <body>
 
 <!-- ── Sidebar ── -->
 <nav class="sidebar">
-  <div class="logo">B</div>
+  <div class="logo-wrap">
+    <div class="logo">B</div>
+    <div><div class="logo-name">BooksAI</div><div class="logo-tag">Smart Bookkeeping</div></div>
+  </div>
+
   <button class="nav-item active" onclick="navigate('dashboard')" id="nav-dashboard">
-    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-    <span class="nav-tooltip">Dashboard</span>
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+    Dashboard
   </button>
   <button class="nav-item" onclick="navigate('ledger')" id="nav-ledger">
     <svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/><path d="M8 3v18"/></svg>
-    <span class="nav-tooltip">Ledger</span>
+    Ledger
   </button>
   <button class="nav-item" onclick="navigate('pl')" id="nav-pl">
     <svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
-    <span class="nav-tooltip">P&amp;L Statement</span>
+    P&amp;L Statement
   </button>
   <button class="nav-item" onclick="navigate('invoices')" id="nav-invoices">
     <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-    <span class="nav-tooltip">Invoices</span>
+    Invoices
   </button>
   <button class="nav-item" onclick="navigate('expenses')" id="nav-expenses">
-    <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-    <span class="nav-tooltip">Expenses</span>
+    <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+    Expenses
   </button>
   <button class="nav-item" onclick="navigate('payroll')" id="nav-payroll">
     <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-    <span class="nav-tooltip">Payroll</span>
+    Payroll
   </button>
   <button class="nav-item" onclick="navigate('marketing')" id="nav-marketing">
     <svg viewBox="0 0 24 24"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>
-    <span class="nav-tooltip">Marketing</span>
+    Marketing
   </button>
+  <button class="nav-item" onclick="navigate('googleads')" id="nav-googleads">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-5"/></svg>
+    Google Ads
+  </button>
+
+  <div class="sidebar-spacer"></div>
+  <div class="sidebar-footer">
+    <a id="adminLink" href="/admin" style="display:none">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>
+      Admin Panel
+    </a>
+    <a href="/logout">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Log Out
+    </a>
+    <a onclick="openPasswordModal()" style="cursor:pointer">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Change Password
+    </a>
+  </div>
 </nav>
 
 <!-- ── Main ── -->
@@ -244,10 +367,18 @@ textarea{resize:vertical;min-height:60px}
     </div>
     <div class="topbar-spacer"></div>
     <span class="badge-beta">BETA</span>
-    <span id="topbar-user" style="font-size:12px;color:var(--muted)">BooksAI · Powered by Claude AI</span>
-    <a id="adminLink" href="/admin" style="display:none;font-size:12px;color:var(--accent);text-decoration:none;margin-left:4px">⚙ Admin</a>
-    <button class="btn" onclick="openClearData()" style="margin-left:4px;border-color:var(--expense);color:var(--expense)">🗑 Clear All Data</button>
-    <a href="/logout" class="btn" style="border-color:var(--border);color:var(--muted)">Log Out</a>
+    <div class="topbar-user" id="topbar-user" onclick="toggleUserMenu()">
+      <div class="avatar" id="user-avatar">?</div>
+      <span id="user-name">Loading…</span>
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="opacity:.45"><polyline points="6 9 12 15 18 9"/></svg>
+      <div class="user-menu" id="userMenu">
+        <a onclick="openPasswordModal();event.stopPropagation()">🔑 Change Password</a>
+        <a href="/billing" onclick="event.stopPropagation()">💳 Billing</a>
+        <hr>
+        <a href="/logout">🚪 Log Out</a>
+      </div>
+    </div>
+    <button class="btn btn-ghost btn-sm" onclick="openClearData()" style="color:var(--expense)">🗑 Clear Data</button>
   </div>
 
   <div class="content">
@@ -255,18 +386,18 @@ textarea{resize:vertical;min-height:60px}
     <!-- Dashboard -->
     <div class="module active" id="mod-dashboard">
       <div class="kpi-row">
-        <div class="kpi-card"><div class="kpi-label">Total Income</div><div class="kpi-val income" id="kpi-income">—</div><div class="kpi-sub">All time</div></div>
-        <div class="kpi-card"><div class="kpi-label">Total Expenses</div><div class="kpi-val expense" id="kpi-expenses">—</div><div class="kpi-sub">All time</div></div>
-        <div class="kpi-card"><div class="kpi-label">Net P&amp;L</div><div class="kpi-val" id="kpi-net">—</div><div class="kpi-sub" id="kpi-net-sub"></div></div>
-        <div class="kpi-card"><div class="kpi-label">Outstanding Invoices</div><div class="kpi-val warn" id="kpi-inv">—</div><div class="kpi-sub" id="kpi-inv-sub"></div></div>
+        <div class="kpi-card"><div class="kpi-icon green">💰</div><div class="kpi-label">Total Income</div><div class="kpi-val income" id="kpi-income">—</div><div class="kpi-sub">All time</div></div>
+        <div class="kpi-card"><div class="kpi-icon red">💳</div><div class="kpi-label">Total Expenses</div><div class="kpi-val expense" id="kpi-expenses">—</div><div class="kpi-sub">All time</div></div>
+        <div class="kpi-card"><div class="kpi-icon teal">📊</div><div class="kpi-label">Net P&amp;L</div><div class="kpi-val" id="kpi-net">—</div><div class="kpi-sub" id="kpi-net-sub"></div></div>
+        <div class="kpi-card"><div class="kpi-icon amber">🧾</div><div class="kpi-label">Outstanding Invoices</div><div class="kpi-val warn" id="kpi-inv">—</div><div class="kpi-sub" id="kpi-inv-sub"></div></div>
       </div>
       <div class="charts-row">
-        <div class="chart-card"><div class="chart-title">Monthly P&amp;L — Last 6 Months</div><div class="chart-wrap"><canvas id="chartPL"></canvas></div></div>
-        <div class="chart-card"><div class="chart-title">Expense Breakdown</div><div class="chart-wrap"><canvas id="chartExp"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title">Monthly P&amp;L <span>Last 6 months</span></div><div class="chart-wrap"><canvas id="chartPL"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title">Expense Breakdown <span>By category</span></div><div class="chart-wrap"><canvas id="chartExp"></canvas></div></div>
       </div>
       <div class="tbl-wrap">
-        <div style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600">Recent Transactions</div>
-        <table class="tbl" id="dash-recent"><thead><tr><th>Date</th><th>Description</th><th>Amount</th><th>Category</th><th>Type</th></tr></thead><tbody id="dash-recent-body"><tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px">Loading…</td></tr></tbody></table>
+        <div style="padding:14px 18px;border-bottom:1px solid var(--border);font-size:14px;font-weight:600;color:var(--text);background:var(--surface)">Recent Transactions</div>
+        <table class="tbl" id="dash-recent"><thead><tr><th>Date</th><th>Description</th><th>Amount</th><th>Category</th><th>Type</th></tr></thead><tbody id="dash-recent-body"><tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr></tbody></table>
       </div>
     </div>
 
@@ -274,20 +405,20 @@ textarea{resize:vertical;min-height:60px}
     <div class="module" id="mod-ledger">
       <div class="toolbar">
         <button class="btn btn-accent" onclick="addLedgerRow()">+ Add Row</button>
-
+        <button class="btn" onclick="openImport()">📥 Import Data</button>
         <button class="btn" onclick="aiCategorizeLedger()">✨ AI Categorize</button>
         <div class="spacer"></div>
-        <button class="btn" onclick="exportLedger()">📥 Export CSV</button>
+        <button class="btn btn-ghost" onclick="exportLedger()">⬇ Export CSV</button>
       </div>
       <div class="grid-wrap">
-        <div id="ledgerGrid" class="ag-theme-alpine-dark" style="height:calc(100vh - 220px)"></div>
+        <div id="ledgerGrid" class="ag-theme-alpine" style="height:calc(100vh - 220px)"></div>
       </div>
     </div>
 
     <!-- P&L -->
     <div class="module" id="mod-pl">
       <div class="pl-controls">
-        <label style="font-size:13px;color:var(--muted)">Period:</label>
+        <label style="font-size:13px;color:var(--muted);font-weight:500">Period:</label>
         <select id="plMonths" onchange="loadPL()" style="width:160px">
           <option value="all" selected>All Time</option>
           <option value="12">Last 12 months</option>
@@ -295,10 +426,10 @@ textarea{resize:vertical;min-height:60px}
           <option value="3">Last 3 months</option>
         </select>
         <div class="spacer"></div>
-        <button class="btn" onclick="window.print()">🖨 Print</button>
+        <button class="btn btn-ghost" onclick="window.print()">🖨 Print</button>
       </div>
       <div class="tbl-wrap" id="plWrap">
-        <div style="text-align:center;padding:30px;color:var(--muted)">Loading P&amp;L…</div>
+        <div style="text-align:center;padding:32px;color:var(--muted)">Loading P&amp;L…</div>
       </div>
     </div>
 
@@ -307,16 +438,23 @@ textarea{resize:vertical;min-height:60px}
       <div class="toolbar">
         <button class="btn btn-accent" onclick="newInvoice()">+ New Invoice</button>
         <div class="spacer"></div>
-        <span style="font-size:12px;color:var(--muted)" id="inv-count">0 invoices</span>
+        <span style="font-size:12px;color:var(--muted);font-weight:500" id="inv-count">0 invoices</span>
       </div>
       <div class="inv-layout">
         <div>
-          <div id="inv-list"><div class="empty"><div class="empty-icon">🧾</div><p>No invoices yet.<br>Click + New Invoice to create your first.</p></div></div>
+          <div id="inv-list">
+            <div class="empty">
+              <div class="empty-icon">🧾</div>
+              <h3>No invoices yet</h3>
+              <p>Create your first invoice to start<br>tracking client payments.</p>
+              <button class="btn btn-accent" onclick="newInvoice()">+ New Invoice</button>
+            </div>
+          </div>
         </div>
         <div id="inv-form-wrap" style="display:none">
           <div class="section-card">
             <div class="section-title">Invoice <span id="inv-form-mode">New</span>
-              <button class="btn btn-sm" style="margin-left:auto" onclick="document.getElementById('inv-form-wrap').style.display='none'">✕</button>
+              <button class="btn btn-sm btn-ghost" style="margin-left:auto" onclick="document.getElementById('inv-form-wrap').style.display='none'">✕ Close</button>
             </div>
             <div class="form-row cols-2">
               <div class="form-group"><label>Invoice #</label><input id="inv-number" placeholder="INV-001"></div>
@@ -332,12 +470,12 @@ textarea{resize:vertical;min-height:60px}
               <div class="form-group"><label>Issue Date</label><input id="inv-date" type="date"></div>
               <div class="form-group"><label>Due Date</label><input id="inv-due" type="date"></div>
             </div>
-            <div class="section-title" style="margin-top:12px">Line Items</div>
+            <div class="section-title" style="margin-top:4px">Line Items</div>
             <table class="line-items-table" id="inv-items-table">
               <thead><tr><th style="width:45%">Description</th><th style="width:15%">Qty</th><th style="width:20%">Rate ($)</th><th style="width:15%">Amount</th><th style="width:5%"></th></tr></thead>
               <tbody id="inv-items-body"></tbody>
             </table>
-            <button class="btn btn-sm" onclick="addInvLine()" style="margin-bottom:8px">+ Add Line</button>
+            <button class="btn btn-sm" onclick="addInvLine()" style="margin-bottom:10px">+ Add Line</button>
             <div class="form-row cols-2">
               <div class="form-group"><label>Tax Rate (%)</label><input id="inv-tax" type="number" placeholder="0" value="0" oninput="recalcInv()"></div>
               <div class="form-group"><label>Notes</label><textarea id="inv-notes" rows="2"></textarea></div>
@@ -347,7 +485,7 @@ textarea{resize:vertical;min-height:60px}
               <div class="inv-totals-row"><span>Tax</span><span id="inv-tax-amt">$0.00</span></div>
               <div class="inv-totals-row total"><span>Total</span><span id="inv-total">$0.00</span></div>
             </div>
-            <div class="toolbar" style="margin-top:12px">
+            <div class="toolbar" style="margin-top:14px">
               <button class="btn btn-accent" onclick="saveInvoice()">💾 Save</button>
               <button class="btn" onclick="markInvoice('sent')">✉ Mark Sent</button>
               <button class="btn" onclick="markInvoice('paid')">✅ Mark Paid</button>
@@ -361,40 +499,228 @@ textarea{resize:vertical;min-height:60px}
 
     <!-- Expenses -->
     <div class="module" id="mod-expenses">
-      <div class="quick-add">
-        <div class="form-group"><label>Date</label><input id="exp-date" type="date"></div>
-        <div class="form-group"><label>Vendor</label><input id="exp-vendor" placeholder="Amazon"></div>
-        <div class="form-group" style="flex:2"><label>Description</label><input id="exp-desc" placeholder="Office supplies"></div>
-        <div class="form-group"><label>Amount ($)</label><input id="exp-amount" type="number" placeholder="0.00"></div>
-        <div class="form-group">
-          <label>Category</label>
-          <select id="exp-cat">
-            <option value="Uncategorized">Uncategorized</option>
+
+      <!-- KPI strip -->
+      <div class="exp-kpi-strip" id="exp-kpi-strip">
+        <div class="exp-kpi"><div class="exp-kpi-val" id="exp-kpi-total">—</div><div class="exp-kpi-lbl">Total Expenses</div></div>
+        <div class="exp-kpi"><div class="exp-kpi-val" id="exp-kpi-count">—</div><div class="exp-kpi-lbl">Records</div></div>
+        <div class="exp-kpi exp-kpi-src" id="exp-kpi-sources"></div>
+      </div>
+
+      <!-- Filter bar -->
+      <div class="exp-filter-bar">
+        <div class="exp-filter-group">
+          <label>🔍 Search</label>
+          <input id="ef-search" placeholder="vendor, description, category…" oninput="debounceExpFilter()">
+        </div>
+        <div class="exp-filter-group" style="min-width:120px">
+          <label>📅 From</label>
+          <input id="ef-from" type="date" onchange="applyExpFilters()">
+        </div>
+        <div class="exp-filter-group" style="min-width:120px">
+          <label>📅 To</label>
+          <input id="ef-to" type="date" onchange="applyExpFilters()">
+        </div>
+        <div class="exp-filter-group" style="min-width:180px">
+          <label>🏷 Category</label>
+          <select id="ef-cat" onchange="applyExpFilters()">
+            <option value="">All Categories</option>
           </select>
         </div>
-        <button class="btn btn-accent" onclick="addExpense()" style="align-self:flex-end;flex-shrink:0">+ Add</button>
-        <button class="btn" onclick="aiCategorizeExpenses()" style="align-self:flex-end;flex-shrink:0">✨ AI Categorize</button>
+        <div class="exp-filter-group" style="min-width:160px">
+          <label>📦 Source</label>
+          <select id="ef-source" onchange="applyExpFilters()">
+            <option value="">All Sources</option>
+            <option value="expense">Manual Expenses</option>
+            <option value="transaction">Imported Transactions</option>
+            <option value="payroll">Payroll Records</option>
+          </select>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="clearExpFilters()" style="align-self:flex-end;margin-bottom:2px">✕ Clear</button>
+        <button class="btn btn-accent btn-sm" onclick="aiCategorizeExpenses()" style="align-self:flex-end;margin-bottom:2px">✨ AI Cat.</button>
       </div>
+
+      <!-- Quick-add row (collapsible) -->
+      <details class="exp-add-details" id="exp-add-details">
+        <summary class="btn btn-sm" style="list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;margin-bottom:10px">
+          <span>＋</span> Add Manual Expense
+        </summary>
+        <div class="quick-add" style="margin-top:8px">
+          <div class="form-group"><label>Date</label><input id="exp-date" type="date"></div>
+          <div class="form-group"><label>Vendor</label><input id="exp-vendor" placeholder="Amazon"></div>
+          <div class="form-group" style="flex:2"><label>Description</label><input id="exp-desc" placeholder="Office supplies, etc."></div>
+          <div class="form-group"><label>Amount ($)</label><input id="exp-amount" type="number" placeholder="0.00"></div>
+          <div class="form-group">
+            <label>Category</label>
+            <select id="exp-cat"><option value="Uncategorized">Uncategorized</option></select>
+          </div>
+          <button class="btn btn-accent" onclick="addExpense()" style="align-self:flex-end;flex-shrink:0">+ Add</button>
+        </div>
+      </details>
+
+      <!-- Results count -->
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px" id="exp-result-count"></div>
+
+      <!-- Unified grid -->
       <div class="grid-wrap">
-        <div id="expensesGrid" class="ag-theme-alpine-dark" style="height:calc(100vh - 280px)"></div>
+        <div id="expensesGrid" class="ag-theme-alpine" style="height:calc(100vh - 360px)"></div>
       </div>
     </div>
 
     <!-- Payroll -->
     <div class="module" id="mod-payroll">
-      <div class="payroll-layout">
-        <div>
-          <div class="toolbar"><div class="section-title">Employees</div><div class="spacer"></div><button class="btn btn-accent" onclick="openAddEmployee()">+ Add Employee</button></div>
-          <div class="grid-wrap">
-            <div id="employeesGrid" class="ag-theme-alpine-dark" style="height:380px"></div>
+      <!-- Payroll tabs -->
+      <div style="display:flex;gap:8px;margin-bottom:18px;border-bottom:1px solid var(--border);padding-bottom:0">
+        <button class="payroll-tab active" id="ptab-manage" onclick="switchPayrollTab('manage')">👥 Employees & Runs</button>
+        <button class="payroll-tab" id="ptab-paystubs" onclick="switchPayrollTab('paystubs')">📄 Pay Stubs</button>
+        <button class="payroll-tab" id="ptab-analytics" onclick="switchPayrollTab('analytics')">📊 Payroll Analytics</button>
+      </div>
+
+      <!-- Tab: Manage (employees + payroll runs) -->
+      <div id="payroll-manage-section">
+        <div class="payroll-layout">
+          <div>
+            <div class="toolbar"><div class="section-title">👥 Employees</div><div class="spacer"></div><button class="btn btn-accent" onclick="openAddEmployee()">+ Add Employee</button></div>
+            <div class="grid-wrap">
+              <div id="employeesGrid" class="ag-theme-alpine" style="height:340px"></div>
+            </div>
+          </div>
+          <div>
+            <div class="toolbar"><div class="section-title">💸 Payroll Runs</div><div class="spacer"></div><button class="btn btn-accent" onclick="openRunPayroll()">▶ Run Payroll</button></div>
+            <div class="tbl-wrap">
+              <table class="tbl" id="payrollRunsTable"><thead><tr><th>Period</th><th>Pay Date</th><th>Gross</th><th>Net</th><th>Status</th><th></th></tr></thead><tbody id="payrollRunsBody"><tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">No payroll runs yet</td></tr></tbody></table>
+            </div>
           </div>
         </div>
-        <div>
-          <div class="toolbar"><div class="section-title">Payroll Runs</div><div class="spacer"></div><button class="btn btn-accent" onclick="openRunPayroll()">▶ Run Payroll</button></div>
+      </div>
+
+      <!-- Tab: Pay Stubs -->
+      <div id="payroll-paystubs-tab" style="display:none">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+          <div style="flex:1;font-size:13px;color:var(--muted)">Pay stubs are uploaded via <strong style="color:var(--text)">Ledger → Import Data → Receipt / Photo</strong>. Claude AI reads the PDF and saves it here automatically.</div>
+          <button class="btn btn-accent btn-sm" onclick="closeModal('importModal');navigate('ledger');setTimeout(()=>{openImport();setTimeout(()=>switchImportTab('receipt',document.querySelector('.import-tab:nth-child(3)')),100)},100)">📥 Upload Pay Stub</button>
+        </div>
+        <!-- Summary KPIs -->
+        <div id="ps-kpi-row" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px"></div>
+        <!-- Stubs table -->
+        <div class="tbl-wrap" id="ps-table-wrap">
+          <div style="padding:12px 18px;border-bottom:1px solid var(--border);font-size:14px;font-weight:600;background:var(--surface);display:flex;align-items:center;justify-content:space-between">
+            <span>📄 Uploaded Pay Stubs</span>
+            <span id="ps-count" style="font-size:12px;color:var(--muted)"></span>
+          </div>
+          <table class="tbl" id="psTable">
+            <thead>
+              <tr>
+                <th>File</th>
+                <th>Employee</th>
+                <th>Employer</th>
+                <th>Pay Date</th>
+                <th>Period</th>
+                <th>Gross Pay</th>
+                <th>Deductions</th>
+                <th>Net Pay</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="psBody">
+              <tr><td colspan="9" style="text-align:center;color:var(--muted);padding:32px">No pay stubs uploaded yet. Use the button above to upload a PDF.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <!-- Detail drawer -->
+        <div id="psDetail" style="display:none;margin-top:16px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+            <span style="font-size:14px;font-weight:700" id="psDetailTitle">Pay Stub Detail</span>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-sm" id="psDetailDeleteBtn"
+                style="color:var(--expense);border-color:var(--expense);background:var(--expense-bg)"
+                onclick="delPayStubFromDetail()">🗑 Delete This Stub</button>
+              <button class="btn btn-ghost btn-sm" onclick="$('psDetail').style.display='none'">✕ Close</button>
+            </div>
+          </div>
+          <div id="psDetailBody" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px"></div>
+        </div>
+      </div>
+
+      <!-- Tab: Analytics -->
+      <div id="payroll-analytics-tab" style="display:none">
+        <!-- Upload prompt (shown when no data imported yet) -->
+        <div id="pr-upload-prompt" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 24px;text-align:center;gap:14px">
+          <div style="font-size:48px">📂</div>
+          <div style="font-size:17px;font-weight:700;color:var(--text)">Import a Payroll CSV or Excel file</div>
+          <div style="font-size:13px;color:var(--muted);max-width:420px;line-height:1.6">Upload any payroll spreadsheet — Kaggle city payroll data, government payroll exports, or your own employee pay files. BooksAI will auto-detect columns and generate analytics instantly.</div>
+          <div style="font-size:12px;color:var(--subtle);background:var(--surface2);border-radius:8px;padding:10px 16px;max-width:480px">Supports columns like: PAY_YEAR, DEPARTMENT, JOB_TITLE, EMPLOYMENT_TYPE, JOB_STATUS, REGULAR_PAY, OVERTIME_PAY, TOTAL_PAY, BENEFITS</div>
+          <button class="btn btn-accent" style="margin-top:8px" onclick="openPayrollImport()">📥 Import Payroll File</button>
+        </div>
+        <!-- Analytics dashboard (shown after import) -->
+        <div id="payroll-analytics-section" style="display:none">
+          <div style="display:flex;justify-content:flex-end;margin-bottom:12px;gap:8px">
+            <button class="btn btn-ghost btn-sm" onclick="openPayrollImport()">📥 Import New File</button>
+          </div>
+          <!-- KPI row -->
+          <div class="kpi-row">
+            <div class="kpi-card"><div class="kpi-icon teal">📋</div><div class="kpi-label">Total Records</div><div class="kpi-val" id="pr-kpi-records">—</div><div class="kpi-sub">Imported rows</div></div>
+            <div class="kpi-card"><div class="kpi-icon green">💰</div><div class="kpi-label">Total Pay</div><div class="kpi-val income" id="pr-kpi-pay">—</div><div class="kpi-sub">All records</div></div>
+            <div class="kpi-card"><div class="kpi-icon amber">⏰</div><div class="kpi-label">Total Overtime</div><div class="kpi-val warn" id="pr-kpi-ot">—</div><div class="kpi-sub">OT pay</div></div>
+            <div class="kpi-card"><div class="kpi-icon red">📊</div><div class="kpi-label">Avg Pay / Record</div><div class="kpi-val" id="pr-kpi-avg">—</div><div class="kpi-sub">Mean pay</div></div>
+          </div>
+          <!-- Charts row 1 -->
+          <div class="charts-row" style="margin-bottom:16px">
+            <div class="chart-card"><div class="chart-title">Top Departments by Total Pay <span>Top 10</span></div><div class="chart-wrap" style="height:220px"><canvas id="chartPayDept"></canvas></div></div>
+            <div class="chart-card"><div class="chart-title">Employment Type Breakdown <span>By headcount</span></div><div class="chart-wrap" style="height:220px"><canvas id="chartEmpType"></canvas></div></div>
+          </div>
+          <!-- Charts row 2 -->
+          <div class="charts-row" style="margin-bottom:16px">
+            <div class="chart-card"><div class="chart-title">Pay by Year <span>Total pay trend</span></div><div class="chart-wrap" style="height:200px"><canvas id="chartPayYear"></canvas></div></div>
+            <div class="chart-card"><div class="chart-title">Pay Composition <span>Regular / OT / Other</span></div><div class="chart-wrap" style="height:200px"><canvas id="chartPayComp"></canvas></div></div>
+          </div>
+          <!-- Top job titles -->
+          <div class="tbl-wrap" style="margin-bottom:16px">
+            <div style="padding:12px 18px;border-bottom:1px solid var(--border);font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:space-between;background:var(--surface)">
+              <span>🏆 Top Job Titles by Average Pay</span>
+              <button class="btn btn-ghost btn-sm" style="color:var(--expense);font-size:12px" onclick="clearPayrollImport()">🗑 Clear Data</button>
+            </div>
+            <table class="tbl"><thead><tr><th>#</th><th>Job Title</th><th>Avg Pay</th></tr></thead><tbody id="pr-titles-body"></tbody></table>
+          </div>
+          <!-- Status table -->
           <div class="tbl-wrap">
-            <table class="tbl" id="payrollRunsTable"><thead><tr><th>Period</th><th>Pay Date</th><th>Gross</th><th>Net</th><th>Status</th><th></th></tr></thead><tbody id="payrollRunsBody"><tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px">No payroll runs yet</td></tr></tbody></table>
+            <div style="padding:12px 18px;border-bottom:1px solid var(--border);font-size:14px;font-weight:600;background:var(--surface)">Employment Status Distribution</div>
+            <table class="tbl"><thead><tr><th>Status</th><th>Count</th><th>% of Total</th></tr></thead><tbody id="pr-status-body"></tbody></table>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Payroll Analytics (imported CSV data) -->
+    <div id="payroll-analytics-section" style="display:none">
+      <!-- KPI row -->
+      <div class="kpi-row" id="pr-kpi-row">
+        <div class="kpi-card"><div class="kpi-icon teal">📋</div><div class="kpi-label">Total Records</div><div class="kpi-val" id="pr-kpi-records">—</div><div class="kpi-sub">Imported rows</div></div>
+        <div class="kpi-card"><div class="kpi-icon green">💰</div><div class="kpi-label">Total Pay</div><div class="kpi-val income" id="pr-kpi-pay">—</div><div class="kpi-sub">All records</div></div>
+        <div class="kpi-card"><div class="kpi-icon amber">⏰</div><div class="kpi-label">Total Overtime</div><div class="kpi-val warn" id="pr-kpi-ot">—</div><div class="kpi-sub">OT pay</div></div>
+        <div class="kpi-card"><div class="kpi-icon red">📊</div><div class="kpi-label">Avg Pay / Record</div><div class="kpi-val" id="pr-kpi-avg">—</div><div class="kpi-sub">Mean pay</div></div>
+      </div>
+      <!-- Charts row -->
+      <div class="charts-row" style="margin-bottom:16px">
+        <div class="chart-card"><div class="chart-title">Top Departments by Total Pay <span>Top 10</span></div><div class="chart-wrap" style="height:220px"><canvas id="chartPayDept"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title">Employment Type Breakdown <span>By count</span></div><div class="chart-wrap" style="height:220px"><canvas id="chartEmpType"></canvas></div></div>
+      </div>
+      <div class="charts-row" style="margin-bottom:16px">
+        <div class="chart-card"><div class="chart-title">Pay by Year <span>Total pay trend</span></div><div class="chart-wrap" style="height:200px"><canvas id="chartPayYear"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title">Pay Composition <span>Regular / OT / Other</span></div><div class="chart-wrap" style="height:200px"><canvas id="chartPayComp"></canvas></div></div>
+      </div>
+      <!-- Top job titles table -->
+      <div class="tbl-wrap" style="margin-bottom:16px">
+        <div style="padding:12px 18px;border-bottom:1px solid var(--border);font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:space-between;background:var(--surface)">
+          <span>🏆 Top Job Titles by Average Pay</span>
+          <button class="btn btn-ghost btn-sm" style="color:var(--expense);font-size:12px" onclick="clearPayrollImport()">🗑 Clear Imported Data</button>
+        </div>
+        <table class="tbl"><thead><tr><th>#</th><th>Job Title</th><th>Avg Pay</th></tr></thead><tbody id="pr-titles-body"></tbody></table>
+      </div>
+      <!-- Job status table -->
+      <div class="tbl-wrap">
+        <div style="padding:12px 18px;border-bottom:1px solid var(--border);font-size:14px;font-weight:600;background:var(--surface)">Employment Status Distribution</div>
+        <table class="tbl"><thead><tr><th>Status</th><th>Count</th><th>% of Total</th></tr></thead><tbody id="pr-status-body"></tbody></table>
       </div>
     </div>
 
@@ -410,15 +736,138 @@ textarea{resize:vertical;min-height:60px}
       <div class="toolbar">
         <button class="btn btn-accent" onclick="addCampaign()">+ New Campaign</button>
         <div class="spacer"></div>
-        <button class="btn" onclick="exportMarketing()">📥 Export</button>
+        <button class="btn btn-ghost" onclick="exportMarketing()">⬇ Export</button>
       </div>
       <div class="grid-wrap">
-        <div id="marketingGrid" class="ag-theme-alpine-dark" style="height:calc(100vh - 300px)"></div>
+        <div id="marketingGrid" class="ag-theme-alpine" style="height:calc(100vh - 300px)"></div>
       </div>
     </div>
 
-  </div><!-- /content -->
-</div><!-- /main -->
+    <!-- Google Ads -->
+    <div class="module" id="mod-googleads">
+
+      <!-- State A: Not connected -->
+      <div id="ga-connect-state">
+        <div class="empty" style="max-width:560px;margin:40px auto">
+          <div style="font-size:48px;margin-bottom:12px">📢</div>
+          <div class="empty-title">Connect Google Ads</div>
+          <div class="empty-sub">Link your Google Ads account to view live campaign performance and get AI-powered campaign suggestions.</div>
+
+          <details style="width:100%;text-align:left;margin:20px 0;border:1px solid var(--border);border-radius:10px;overflow:hidden">
+            <summary style="padding:12px 16px;font-weight:600;font-size:13px;cursor:pointer;background:var(--surface2)">Setup Guide — How to get your credentials</summary>
+            <div style="padding:16px;font-size:13px;line-height:1.7;color:var(--text)">
+              <ol style="margin:0;padding-left:20px">
+                <li>Go to <strong>console.cloud.google.com</strong> and create an OAuth 2.0 Client ID (Web Application).</li>
+                <li>Apply for a <strong>Google Ads Developer Token</strong> at <em>ads.google.com/intl/en_us/home/tools/manager-accounts/</em>.</li>
+                <li>Run the OAuth flow to obtain a <strong>Refresh Token</strong> with scope <code>https://www.googleapis.com/auth/adwords</code>.</li>
+                <li>Find your <strong>Customer ID</strong> (10-digit number) in the top-right of your Google Ads dashboard.</li>
+              </ol>
+            </div>
+          </details>
+
+          <div style="width:100%;text-align:left">
+
+            <!-- Step 1: Enter credentials -->
+            <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:14px">
+              <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">Step 1 — Enter Your Credentials</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+                <div>
+                  <label style="font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:4px">Developer Token <span style="color:var(--expense)">*</span></label>
+                  <input id="ga-dev-token" placeholder="ABcd-EFgh-12..." style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:13px;padding:8px 10px;outline:none">
+                </div>
+                <div>
+                  <label style="font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:4px">Customer ID <span style="color:var(--expense)">*</span></label>
+                  <input id="ga-customer-id" placeholder="123-456-7890" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:13px;padding:8px 10px;outline:none">
+                </div>
+                <div>
+                  <label style="font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:4px">OAuth Client ID <span style="color:var(--expense)">*</span></label>
+                  <input id="ga-client-id" placeholder="xyz.apps.googleusercontent.com" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:13px;padding:8px 10px;outline:none">
+                </div>
+                <div>
+                  <label style="font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:4px">OAuth Client Secret <span style="color:var(--expense)">*</span></label>
+                  <input id="ga-client-secret" placeholder="GOCSPX-..." style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:13px;padding:8px 10px;outline:none">
+                </div>
+              </div>
+              <div style="font-size:11px;color:var(--muted);margin-bottom:14px">
+                📍 Redirect URI to add in Google Cloud Console: <code style="background:var(--bg);padding:2px 6px;border-radius:4px;font-size:11px">http://localhost:5000/oauth/google-ads/callback</code>
+              </div>
+            </div>
+
+            <!-- Step 2: OAuth button -->
+            <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:14px">
+              <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">Step 2 — Authorize with Google</div>
+              <button class="btn btn-accent" onclick="connectGoogleAds()" style="width:100%;padding:12px;font-size:14px;font-weight:700">
+                🔗 Connect with Google Ads
+              </button>
+              <p style="font-size:12px;color:var(--muted);margin-top:8px;text-align:center">You'll be redirected to Google to approve access, then brought back automatically.</p>
+            </div>
+
+            <p style="text-align:center;font-size:12px;color:var(--muted)">No credentials yet? <a href="#" onclick="loadGoogleAdsDemoMode()" style="color:var(--accent)">View Demo Mode →</a></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- State B: Connected / Demo -->
+      <div id="ga-connected-state" style="display:none">
+        <!-- Status bar -->
+        <div id="ga-status-bar" style="display:flex;align-items:center;gap:12px;padding:10px 0 16px;flex-wrap:wrap">
+          <span id="ga-status-badge" class="badge badge-active">Connected</span>
+          <span id="ga-status-email" style="font-size:13px;color:var(--muted)"></span>
+          <span id="ga-status-cid" style="font-size:13px;color:var(--muted)"></span>
+          <div style="flex:1"></div>
+          <button class="btn btn-sm" onclick="disconnectGoogleAds()" style="color:var(--expense);border-color:var(--expense)">Disconnect</button>
+        </div>
+
+        <!-- KPI row -->
+        <div class="kpi-row" id="ga-kpi-row">
+          <div class="kpi-card"><div class="kpi-icon red">💸</div><div class="kpi-label">Total Spend</div><div class="kpi-val expense" id="ga-kpi-spend">—</div><div class="kpi-sub">Last 30 days</div></div>
+          <div class="kpi-card"><div class="kpi-icon teal">👆</div><div class="kpi-label">Total Clicks</div><div class="kpi-val" id="ga-kpi-clicks">—</div><div class="kpi-sub">Last 30 days</div></div>
+          <div class="kpi-card"><div class="kpi-icon green">🎯</div><div class="kpi-label">Conversions</div><div class="kpi-val income" id="ga-kpi-conv">—</div><div class="kpi-sub">Last 30 days</div></div>
+          <div class="kpi-card"><div class="kpi-icon amber">⚡</div><div class="kpi-label">Avg CPC</div><div class="kpi-val" id="ga-kpi-cpc">—</div><div class="kpi-sub">Cost per click</div></div>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="toolbar">
+          <button class="btn btn-accent" onclick="suggestGoogleAdsCampaigns()">✨ AI Suggest Campaigns</button>
+          <button class="btn" onclick="openNewCampaign(null)">+ New Campaign</button>
+          <div class="spacer"></div>
+          <span id="ga-demo-note" style="font-size:12px;color:var(--muted);display:none">Showing demo data</span>
+        </div>
+
+        <!-- AI Suggestions panel -->
+        <div id="ga-suggestions-wrap" style="display:none;margin-bottom:20px">
+          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px">AI Campaign Suggestions</div>
+          <div id="ga-suggestions-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px"></div>
+        </div>
+
+        <!-- Live campaigns table -->
+        <div class="tbl-wrap">
+          <div style="padding:14px 18px;border-bottom:1px solid var(--border);font-size:14px;font-weight:600;color:var(--text);background:var(--surface);display:flex;align-items:center;gap:10px">
+            Live Campaigns
+            <span id="ga-live-count" style="font-size:12px;font-weight:400;color:var(--muted)"></span>
+          </div>
+          <table class="tbl">
+            <thead><tr><th>Campaign</th><th>Status</th><th style="text-align:right">Daily Budget</th><th style="text-align:right">Impressions</th><th style="text-align:right">Clicks</th><th style="text-align:right">Conv.</th><th style="text-align:right">Cost</th><th style="text-align:right">CTR</th><th style="text-align:right">CPC</th></tr></thead>
+            <tbody id="ga-campaigns-body"><tr><td colspan="9" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr></tbody>
+          </table>
+        </div>
+
+        <!-- Saved campaigns table -->
+        <div class="tbl-wrap" style="margin-top:20px">
+          <div style="padding:14px 18px;border-bottom:1px solid var(--border);font-size:14px;font-weight:600;color:var(--text);background:var(--surface)">
+            Saved Campaigns (BooksAI)
+          </div>
+          <table class="tbl">
+            <thead><tr><th>Name</th><th>Objective</th><th>Status</th><th style="text-align:right">Daily Budget</th><th>Start</th><th>End</th><th></th></tr></thead>
+            <tbody id="ga-saved-body"><tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">No saved campaigns yet</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
 
 <!-- ── AI Panel ── -->
 <aside class="ai-panel">
@@ -428,7 +877,7 @@ textarea{resize:vertical;min-height:60px}
     <span class="ai-module-badge" id="ai-module-badge">Dashboard</span>
   </div>
   <div class="ai-messages" id="aiMessages">
-    <div class="msg assistant">👋 Hi! I'm BooksAI, your AI bookkeeper. Add transactions in the Ledger, or ask me anything about your finances.</div>
+    <div class="msg assistant">👋 Hi! I'm your AI bookkeeper. Add transactions in the Ledger, import from CSV or Google Sheets, or ask me anything about your finances.</div>
   </div>
   <div class="ai-chips" id="aiChips"></div>
   <div class="ai-input-row">
@@ -439,10 +888,86 @@ textarea{resize:vertical;min-height:60px}
   </div>
 </aside>
 
+<!-- ── Import Modal ── -->
+<div class="modal-bg" id="importModal">
+  <div class="modal modal-wide">
+    <div class="modal-header">
+      <span class="modal-title">📥 Import Data</span>
+      <button class="modal-close" onclick="closeModal('importModal')">✕</button>
+    </div>
+
+    <div class="import-tabs">
+      <button class="import-tab active" onclick="switchImportTab('file',this)">📄 CSV / Excel</button>
+      <button class="import-tab" onclick="switchImportTab('sheets',this)">📊 Google Sheets</button>
+      <button class="import-tab" onclick="switchImportTab('receipt',this)">🧾 Receipt / Photo</button>
+    </div>
+
+    <!-- CSV / Excel -->
+    <div class="import-pane active" id="pane-file">
+      <div class="upload-zone" id="dropZone" onclick="$('fileInput').click()" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleDrop(event)">
+        <div class="upload-icon">📂</div>
+        <h4>Drop your file here, or click to browse</h4>
+        <p>Supports CSV, Excel (.xlsx, .xls) — up to 500 rows processed</p>
+        <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleFileImport(this)">
+      </div>
+      <div id="fileStatus" style="margin-top:12px;font-size:13px;color:var(--muted);display:none"></div>
+    </div>
+
+    <!-- Google Sheets -->
+    <div class="import-pane" id="pane-sheets">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Paste a <strong>publicly shared</strong> Google Sheets link. The sheet must be shared with "Anyone with the link can view."</p>
+      <div class="form-group" style="margin-bottom:14px">
+        <label>Google Sheets URL</label>
+        <input id="sheetsUrl" placeholder="https://docs.google.com/spreadsheets/d/…" type="url">
+      </div>
+      <button class="btn btn-accent" onclick="handleSheetsImport()">📊 Fetch Sheet Data</button>
+      <div id="sheetsStatus" style="margin-top:12px;font-size:13px;color:var(--muted);display:none"></div>
+    </div>
+
+    <!-- Receipt / Photo -->
+    <div class="import-pane" id="pane-receipt">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Upload a <strong>pay stub, receipt, invoice, or bank statement</strong>. Claude AI reads the document and extracts all data. Pay stubs are saved directly to the Payroll → Pay Stubs tab.</p>
+      <div class="upload-zone" id="receiptDropZone"
+           onclick="$('receiptInput').click()"
+           ondragover="event.preventDefault();this.classList.add('dragover')"
+           ondragleave="this.classList.remove('dragover')"
+           ondrop="handleReceiptDrop(event)">
+        <div class="upload-icon">🧾</div>
+        <h4>Drop file here or click to browse</h4>
+        <p>PDF, JPG, PNG — Claude Vision extracts all data</p>
+        <input type="file" id="receiptInput" accept="image/*,.pdf" style="display:none" onchange="handleReceiptImport(this)">
+      </div>
+      <div id="receiptStatus" style="margin-top:12px;font-size:13px;color:var(--muted);display:none"></div>
+      <!-- Pay-stub result card (shown after successful extraction) -->
+      <div id="paystubResultCard" style="display:none;margin-top:16px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:18px">
+        <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:12px">✅ Pay Stub Extracted &amp; Saved</div>
+        <div id="paystubResultBody"></div>
+        <div style="margin-top:12px;font-size:12px;color:var(--muted)">Saved to <strong>Payroll → Pay Stubs</strong> tab. Upload another or close.</div>
+      </div>
+    </div>
+
+    <!-- Preview table (shared) -->
+    <div id="importPreviewWrap" style="display:none;margin-top:18px">
+      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px" id="importStatus"></div>
+      <div style="max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:8px">
+        <table class="tbl" id="importPreviewTable">
+          <thead><tr><th>Date</th><th>Description</th><th>Amount</th><th>Category</th><th>Type</th></tr></thead>
+          <tbody id="importPreviewBody"></tbody>
+        </table>
+      </div>
+      <div class="toolbar" style="margin-top:14px">
+        <button class="btn btn-accent" id="importConfirmBtn" onclick="confirmImport()" disabled>✅ Import All</button>
+        <button class="btn btn-ghost" onclick="closeModal('importModal')">Cancel</button>
+        <span id="importCount" style="font-size:12px;color:var(--muted)"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ── Add Employee Modal ── -->
 <div class="modal-bg" id="empModal">
   <div class="modal">
-    <div class="modal-header"><span class="modal-title">Add Employee</span><button class="modal-close" onclick="closeModal('empModal')">✕</button></div>
+    <div class="modal-header"><span class="modal-title">👤 Add Employee</span><button class="modal-close" onclick="closeModal('empModal')">✕</button></div>
     <div class="form-row cols-2">
       <div class="form-group"><label>Full Name</label><input id="emp-name" placeholder="Jane Smith"></div>
       <div class="form-group"><label>Title</label><input id="emp-title" placeholder="Software Engineer"></div>
@@ -455,9 +980,9 @@ textarea{resize:vertical;min-height:60px}
       <div class="form-group"><label>Pay Type</label><select id="emp-paytype"><option value="salary">Salary</option><option value="hourly">Hourly</option></select></div>
       <div class="form-group"><label>Rate ($/yr or $/hr)</label><input id="emp-rate" type="number" placeholder="60000"></div>
     </div>
-    <div class="toolbar" style="margin-top:12px">
+    <div class="toolbar" style="margin-top:14px">
       <button class="btn btn-accent" onclick="saveEmployee()">Save Employee</button>
-      <button class="btn" onclick="closeModal('empModal')">Cancel</button>
+      <button class="btn btn-ghost" onclick="closeModal('empModal')">Cancel</button>
     </div>
   </div>
 </div>
@@ -465,7 +990,7 @@ textarea{resize:vertical;min-height:60px}
 <!-- ── Run Payroll Modal ── -->
 <div class="modal-bg" id="payrollModal">
   <div class="modal">
-    <div class="modal-header"><span class="modal-title">Run Payroll</span><button class="modal-close" onclick="closeModal('payrollModal')">✕</button></div>
+    <div class="modal-header"><span class="modal-title">▶ Run Payroll</span><button class="modal-close" onclick="closeModal('payrollModal')">✕</button></div>
     <div class="form-row cols-2">
       <div class="form-group"><label>Period Start</label><input id="pr-start" type="date"></div>
       <div class="form-group"><label>Period End</label><input id="pr-end" type="date"></div>
@@ -473,25 +998,120 @@ textarea{resize:vertical;min-height:60px}
     <div class="form-row">
       <div class="form-group"><label>Pay Date</label><input id="pr-date" type="date"></div>
     </div>
-    <div style="background:var(--surface2);border-radius:8px;padding:12px;font-size:13px;color:var(--muted);margin:8px 0">
+    <div style="background:var(--surface2);border-radius:8px;padding:12px;font-size:13px;color:var(--muted);margin:10px 0">
       Payroll will be calculated for all active employees. Estimated totals will appear after saving.
     </div>
-    <div class="toolbar" style="margin-top:12px">
+    <div class="toolbar" style="margin-top:14px">
       <button class="btn btn-accent" onclick="runPayroll()">▶ Process Payroll</button>
-      <button class="btn" onclick="closeModal('payrollModal')">Cancel</button>
+      <button class="btn btn-ghost" onclick="closeModal('payrollModal')">Cancel</button>
     </div>
   </div>
 </div>
 
+<!-- ── Payroll Import Modal ── -->
+<div class="modal-bg" id="payrollImportModal">
+  <div class="modal modal-wide">
+    <div class="modal-header">
+      <span class="modal-title">📥 Import Payroll Data</span>
+      <button class="modal-close" onclick="closeModal('payrollImportModal')">✕</button>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.6">
+      Upload any payroll CSV or Excel file. BooksAI will auto-detect columns like <strong>PAY_YEAR, DEPARTMENT, JOB_TITLE, EMPLOYMENT_TYPE, REGULAR_PAY, OVERTIME_PAY, TOTAL_PAY</strong> and generate analytics automatically.
+    </p>
+    <div class="upload-zone" id="prDropZone" onclick="$('prFileInput').click()" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handlePrDrop(event)">
+      <div class="upload-icon">📊</div>
+      <h4>Drop your payroll file here, or click to browse</h4>
+      <p>Supports CSV, Excel (.xlsx, .xls) · Up to 50,000 rows</p>
+      <input type="file" id="prFileInput" accept=".csv,.xlsx,.xls" style="display:none" onchange="handlePayrollFileSelect(this)">
+    </div>
+    <div id="prUploadStatus" style="margin-top:10px;font-size:13px;color:var(--muted);display:none"></div>
+    <!-- Column mapping preview -->
+    <div id="prMappingWrap" style="display:none;margin-top:16px">
+      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px" id="prMappingTitle">Detected Columns</div>
+      <div id="prMappingList" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px"></div>
+      <!-- Preview table -->
+      <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px">Preview (first 10 rows)</div>
+      <div style="max-height:260px;overflow-y:auto;border:1px solid var(--border);border-radius:8px">
+        <table class="tbl" id="prPreviewTable"><thead id="prPreviewHead"></thead><tbody id="prPreviewBody"></tbody></table>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:14px">
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+          <input type="checkbox" id="prReplaceCheck" checked> Replace existing payroll data
+        </label>
+        <div style="flex:1"></div>
+        <button class="btn btn-ghost" onclick="closeModal('payrollImportModal')">Cancel</button>
+        <button class="btn btn-accent" id="prImportBtn" onclick="confirmPayrollImport()">✅ Import All Records</button>
+      </div>
+      <div id="prImportCount" style="font-size:12px;color:var(--muted);margin-top:6px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Clear Data Modal ── -->
 <div class="modal-bg" id="clearModal">
   <div class="modal" style="max-width:420px">
     <div class="modal-header"><span class="modal-title" style="color:var(--expense)">⚠ Clear All Data</span><button class="modal-close" onclick="closeModal('clearModal')">✕</button></div>
-    <p style="font-size:13px;color:var(--muted);margin-bottom:16px">This will permanently delete <strong style="color:var(--text)">all transactions, invoices, expenses, employees, payroll runs, and marketing campaigns</strong>. This cannot be undone.</p>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.6">This will permanently delete <strong style="color:var(--text)">all transactions, invoices, expenses, employees, payroll runs, and marketing campaigns</strong>. This cannot be undone.</p>
     <p style="font-size:13px;color:var(--muted);margin-bottom:8px">Type <strong style="color:var(--text)">CLEAR</strong> to confirm:</p>
     <input id="clearConfirmInput" type="text" placeholder="Type CLEAR here" style="width:100%;margin-bottom:16px" oninput="$('clearBtn').disabled=this.value!=='CLEAR'">
     <div class="toolbar">
-      <button id="clearBtn" class="btn" disabled onclick="confirmClearData()" style="border-color:var(--expense);color:var(--expense)">🗑 Delete Everything</button>
-      <button class="btn" onclick="closeModal('clearModal')">Cancel</button>
+      <button id="clearBtn" class="btn btn-danger" disabled onclick="confirmClearData()">🗑 Delete Everything</button>
+      <button class="btn btn-ghost" onclick="closeModal('clearModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Google Ads Campaign Modal ── -->
+<div class="modal-bg" id="gaCampaignModal">
+  <div class="modal modal-wide">
+    <div class="modal-header">
+      <span class="modal-title">📢 New Google Ads Campaign</span>
+      <button class="modal-close" onclick="closeModal('gaCampaignModal')">✕</button>
+    </div>
+    <div class="form-row cols-2">
+      <div class="form-group"><label>Campaign Name</label><input id="ga-cam-name" placeholder="Summer Sale — Search"></div>
+      <div class="form-group"><label>Objective</label>
+        <select id="ga-cam-obj" class="input">
+          <option value="Sales">Sales</option>
+          <option value="Leads">Leads</option>
+          <option value="Website traffic">Website traffic</option>
+          <option value="Brand awareness">Brand awareness</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Daily Budget ($)</label><input id="ga-cam-budget" type="number" min="1" placeholder="50"></div>
+      <div class="form-group"><label>Target Demographic</label><input id="ga-cam-demo" placeholder="Adults 25-54 interested in finance"></div>
+      <div class="form-group"><label>Start Date</label><input id="ga-cam-start" type="date"></div>
+      <div class="form-group"><label>End Date</label><input id="ga-cam-end" type="date"></div>
+    </div>
+    <div style="margin:16px 0 8px;font-size:13px;font-weight:600;color:var(--text);border-top:1px solid var(--border);padding-top:16px">Ad Copy</div>
+    <div class="form-row cols-3" style="grid-template-columns:1fr 1fr 1fr">
+      <div class="form-group">
+        <label>Headline 1 <span id="ga-h1-cnt" style="color:var(--muted);font-weight:400">0/30</span></label>
+        <input id="ga-cam-h1" maxlength="30" placeholder="Save on Bookkeeping" oninput="$('ga-h1-cnt').textContent=this.value.length+'/30'">
+      </div>
+      <div class="form-group">
+        <label>Headline 2 <span id="ga-h2-cnt" style="color:var(--muted);font-weight:400">0/30</span></label>
+        <input id="ga-cam-h2" maxlength="30" placeholder="AI-Powered Accounting" oninput="$('ga-h2-cnt').textContent=this.value.length+'/30'">
+      </div>
+      <div class="form-group">
+        <label>Headline 3 <span id="ga-h3-cnt" style="color:var(--muted);font-weight:400">0/30</span></label>
+        <input id="ga-cam-h3" maxlength="30" placeholder="Try Free Today" oninput="$('ga-h3-cnt').textContent=this.value.length+'/30'">
+      </div>
+    </div>
+    <div class="form-row cols-2">
+      <div class="form-group">
+        <label>Description 1 <span id="ga-d1-cnt" style="color:var(--muted);font-weight:400">0/90</span></label>
+        <input id="ga-cam-d1" maxlength="90" placeholder="Automate your bookkeeping with AI…" oninput="$('ga-d1-cnt').textContent=this.value.length+'/90'">
+      </div>
+      <div class="form-group">
+        <label>Description 2 <span id="ga-d2-cnt" style="color:var(--muted);font-weight:400">0/90</span></label>
+        <input id="ga-cam-d2" maxlength="90" placeholder="No contracts. Cancel anytime…" oninput="$('ga-d2-cnt').textContent=this.value.length+'/90'">
+      </div>
+    </div>
+    <div class="form-group"><label>Final URL</label><input id="ga-cam-url" type="url" placeholder="https://yoursite.com/landing"></div>
+    <div class="toolbar" style="margin-top:16px">
+      <button class="btn btn-accent" onclick="createGoogleAdsCampaign()">Save Campaign</button>
+      <button class="btn btn-ghost" onclick="closeModal('gaCampaignModal')">Cancel</button>
     </div>
   </div>
 </div>
@@ -504,18 +1124,25 @@ let chatHistory   = [];
 let grids         = {};
 let currentInvoiceId = null;
 let chartPL, chartExp;
+let chartPayDept, chartEmpType, chartPayYear, chartPayComp;
+let importRows = [];
+let prUploadData  = null;   // {rows, mapping, total}
+let currentPayrollTab = 'manage';
+
 const MODULE_TITLES = {
   dashboard:'Dashboard', ledger:'Ledger', pl:'P&L Statement',
-  invoices:'Invoices', expenses:'Expenses', payroll:'Payroll', marketing:'Marketing'
+  invoices:'Invoices', expenses:'Expenses', payroll:'Payroll', marketing:'Marketing',
+  googleads:'Google Ads'
 };
 const MODULE_SUBS = {
   dashboard:'Overview of your business finances',
   ledger:'All transactions — click any cell to edit',
   pl:'Auto-generated income statement',
   invoices:'Create and manage client invoices',
-  expenses:'Track and categorize business expenses',
+  expenses:'All expenses across every data source — filter by date, category, or source',
   payroll:'Manage employees and pay runs',
-  marketing:'Campaign performance and ROI'
+  marketing:'Campaign performance and ROI',
+  googleads:'Manage Google Ads campaigns and get AI suggestions'
 };
 const MODULE_CHIPS = {
   dashboard:["What's my net profit?","Top expense categories","Any financial concerns?","Year-to-date summary"],
@@ -523,8 +1150,9 @@ const MODULE_CHIPS = {
   pl:["Why is this month low?","Compare to last month","Biggest expense categories","Revenue trend"],
   invoices:["What's overdue?","Average invoice size","Best clients","Unpaid invoice total"],
   expenses:["Where am I overspending?","Uncategorized expenses","Monthly expense trend","Biggest categories"],
-  payroll:["Total payroll cost","Headcount summary","Payroll as % of revenue"],
-  marketing:["Best ROI campaign","Cost per lead","Budget vs actual spend","Top performing channel"]
+  payroll:["Total payroll cost","Headcount summary","Payroll as % of revenue","Which department has the highest pay?","Overtime analysis","Active vs inactive breakdown"],
+  marketing:["Best ROI campaign","Cost per lead","Budget vs actual spend","Top performing channel"],
+  googleads:["What's my ad ROI?","Suggest new campaigns","Optimize ad spend","Compare to competitors"]
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -536,10 +1164,7 @@ async function api(method, url, body) {
   const opts = {method, headers:{'Content-Type':'application/json'}};
   if (body !== undefined) opts.body = JSON.stringify(body);
   const r = await fetch(url, opts);
-  if (r.status === 401 || r.status === 403) {
-    window.location.href = '/login';
-    return {};
-  }
+  if (r.status === 401 || r.status === 403) { window.location.href = '/login'; return {}; }
   return r.json();
 }
 
@@ -565,6 +1190,7 @@ async function loadModule(mod) {
   if (mod === 'expenses')   await loadExpenses();
   if (mod === 'payroll')    await loadPayroll();
   if (mod === 'marketing')  await loadMarketing();
+  if (mod === 'googleads')  await loadGoogleAds();
 }
 
 // ── Dashboard ──────────────────────────────────────────────────────────────
@@ -575,49 +1201,46 @@ async function loadDashboard() {
   const net = d.net;
   $('kpi-net').textContent    = fmt(net);
   $('kpi-net').className      = 'kpi-val ' + (net >= 0 ? 'net-pos' : 'net-neg');
-  $('kpi-net-sub').textContent = net >= 0 ? 'Profitable' : 'Operating at a loss';
+  $('kpi-net-sub').textContent = net >= 0 ? '↑ Profitable' : '↓ Operating at a loss';
   $('kpi-inv').textContent    = fmt(d.inv_outstanding);
   $('kpi-inv-sub').textContent = fmt(d.inv_paid) + ' paid';
 
-  // Monthly P&L chart
-  const labels = d.monthly.map(m => m.label);
-  const income  = d.monthly.map(m => m.income);
+  const labels   = d.monthly.map(m => m.label);
+  const income   = d.monthly.map(m => m.income);
   const expenses = d.monthly.map(m => m.expenses);
   if (chartPL) chartPL.destroy();
   chartPL = new Chart($('chartPL'), {
     type:'bar',
     data:{labels, datasets:[
-      {label:'Income',  data:income,  backgroundColor:'rgba(63,185,80,.7)',  borderRadius:4},
-      {label:'Expenses',data:expenses,backgroundColor:'rgba(248,81,73,.7)', borderRadius:4}
+      {label:'Income',   data:income,   backgroundColor:'rgba(22,163,74,.75)',  borderRadius:5},
+      {label:'Expenses', data:expenses, backgroundColor:'rgba(220,38,38,.65)', borderRadius:5}
     ]},
     options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{labels:{color:'#7d8590',font:{size:11}}}},
-      scales:{x:{ticks:{color:'#7d8590',font:{size:10}},grid:{color:'#30363d'}},
-              y:{ticks:{color:'#7d8590',font:{size:10},callback:v=>'$'+v.toLocaleString()},grid:{color:'#30363d'}}}}
+      plugins:{legend:{labels:{color:'#6B7280',font:{size:11,family:'Inter'}}}},
+      scales:{x:{ticks:{color:'#9CA3AF',font:{size:10}},grid:{color:'rgba(0,0,0,.04)'}},
+              y:{ticks:{color:'#9CA3AF',font:{size:10},callback:v=>'$'+v.toLocaleString()},grid:{color:'rgba(0,0,0,.04)'}}}}
   });
 
-  // Expense donut
   if (chartExp) chartExp.destroy();
   const cats = d.top_categories;
   if (cats.length) {
-    const palette = ['#f85149','#d29922','#388bfd','#3fb950','#a371f7','#fb8f44','#39d353'];
+    const palette = ['#0C6E5C','#16A34A','#3B82F6','#D97706','#8B5CF6','#EC4899','#F97316'];
     chartExp = new Chart($('chartExp'), {
       type:'doughnut',
-      data:{labels:cats.map(c=>c.name), datasets:[{data:cats.map(c=>c.amount),backgroundColor:palette,borderWidth:0}]},
+      data:{labels:cats.map(c=>c.name), datasets:[{data:cats.map(c=>c.amount),backgroundColor:palette,borderWidth:2,borderColor:'#fff'}]},
       options:{responsive:true,maintainAspectRatio:false,
-        plugins:{legend:{position:'right',labels:{color:'#7d8590',font:{size:10},boxWidth:10,padding:8}}}}
+        plugins:{legend:{position:'right',labels:{color:'#6B7280',font:{size:10,family:'Inter'},boxWidth:10,padding:8}}}}
     });
   }
 
-  // Recent table
   const body = $('dash-recent-body');
   if (!d.recent.length) {
-    body.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px">No transactions yet. Go to Ledger to add or import transactions.</td></tr>';
+    body.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:32px">No transactions yet — add your first one in Ledger.</td></tr>';
     return;
   }
   body.innerHTML = d.recent.map(t => `<tr>
     <td style="color:var(--muted)">${t.date}</td>
-    <td>${t.description}</td>
+    <td style="font-weight:500">${t.description}</td>
     <td class="${t.tx_type==='income'?'amt-inc':'amt-exp'}">${fmt(t.amount)}</td>
     <td><span style="color:var(--muted);font-size:11px">${t.category}</span></td>
     <td><span class="badge badge-${t.tx_type}">${t.tx_type}</span></td>
@@ -630,10 +1253,8 @@ async function loadLedger() {
   if (grids.ledger) { grids.ledger.setGridOption('rowData', rows); return; }
 
   const colDefs = [
-    {field:'date', headerName:'Date', editable:true, width:120,
-     cellEditor:'agDateStringCellEditor'},
-    {field:'description', headerName:'Description', editable:true, flex:2,
-     cellEditorParams:{useFormatter:false}},
+    {field:'date', headerName:'Date', editable:true, width:120, cellEditor:'agDateStringCellEditor'},
+    {field:'description', headerName:'Description', editable:true, flex:2},
     {field:'amount', headerName:'Amount', editable:true, width:130, type:'rightAligned',
      valueFormatter:p=>p.value!=null?fmt(p.value):'',
      cellClass:p=>p.data&&p.data.tx_type==='income'?'amt-inc':'amt-exp'},
@@ -643,23 +1264,18 @@ async function loadLedger() {
      cellEditor:'agSelectCellEditor', cellEditorParams:{values:['income','expense']},
      cellRenderer:p=>`<span class="badge badge-${p.value}">${p.value||'—'}</span>`},
     {headerName:'', width:50, sortable:false, resizable:false,
-     cellRenderer:p=>`<button onclick="delLedgerRow(${p.data.id})" style="background:none;border:none;color:var(--expense);cursor:pointer;font-size:16px;padding:0 4px" title="Delete">×</button>`}
+     cellRenderer:p=>`<button onclick="delLedgerRow(${p.data.id})" style="background:none;border:none;color:var(--expense);cursor:pointer;font-size:17px;padding:0 4px" title="Delete">×</button>`}
   ];
 
-  const gridOptions = {
-    columnDefs: colDefs,
-    rowData: rows,
-    defaultColDef:{resizable:true, sortable:true, filter:true},
-    animateRows:true,
-    pagination:true,
-    paginationPageSize:100,
+  grids.ledger = agGrid.createGrid($('ledgerGrid'), {
+    columnDefs:colDefs, rowData:rows,
+    defaultColDef:{resizable:true,sortable:true,filter:true},
+    animateRows:true, pagination:true, paginationPageSize:100,
     onCellValueChanged: async e => {
       if (!e.data.id) return;
       await api('PUT', `/api/transactions/${e.data.id}`, e.data);
     }
-  };
-  const el = $('ledgerGrid');
-  grids.ledger = agGrid.createGrid(el, gridOptions);
+  });
 }
 
 async function addLedgerRow() {
@@ -678,28 +1294,202 @@ function exportLedger() {
   if (grids.ledger) grids.ledger.exportDataAsCsv({fileName:'booksai-ledger.csv'});
 }
 
-
-// ── AI Categorize Ledger ───────────────────────────────────────────────────
 async function aiCategorizeLedger() {
   if (!grids.ledger) return;
   const allRows = [];
   grids.ledger.forEachNode(n => allRows.push(n.data));
   if (!allRows.length) return;
-
   const BATCH = 80;
   for (let b = 0; b < Math.ceil(allRows.length / BATCH); b++) {
     const offset = b * BATCH;
-    const slice  = allRows.slice(offset, offset + BATCH).map(r => ({date:r.date||'',description:r.description||'',amount:String(r.amount||0)}));
+    const slice  = allRows.slice(offset, offset+BATCH).map(r=>({date:r.date||'',description:r.description||'',amount:String(r.amount||0)}));
     const res = await api('POST', '/categorize', {transactions:slice, id_offset:offset});
     (res.categories||[]).forEach(c => {
-      const row = allRows[c.id - 1];
-      if (!row) return;
+      const row = allRows[c.id-1]; if(!row) return;
       row.category = c.category; row.tx_type = c.type;
       grids.ledger.applyTransaction({update:[row]});
       api('PUT', `/api/transactions/${row.id}`, row);
     });
   }
-  addAIMessage('assistant', `✨ Categorized ${allRows.length} transactions using AI!`);
+  addAIMessage('assistant', `✨ Categorized ${allRows.length} transactions!`);
+}
+
+// ── Import Flow ─────────────────────────────────────────────────────────────
+function openImport() {
+  importRows = [];
+  $('importPreviewWrap').style.display = 'none';
+  $('fileStatus').style.display = 'none';
+  $('sheetsStatus').style.display = 'none';
+  $('receiptStatus').style.display = 'none';
+  $('importModal').classList.add('open');
+}
+
+function switchImportTab(name, el) {
+  document.querySelectorAll('.import-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.import-pane').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  $('pane-'+name).classList.add('active');
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  $('dropZone').classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) processFileUpload(file);
+}
+
+function handleFileImport(input) {
+  const file = input.files[0];
+  if (file) processFileUpload(file);
+  input.value = '';
+}
+
+async function processFileUpload(file) {
+  const status = $('fileStatus');
+  status.style.display = 'block';
+  status.innerHTML = '<span class="spinner"></span> Uploading and analyzing…';
+  const fd = new FormData(); fd.append('file', file);
+  const up = await fetch('/upload', {method:'POST', body:fd}).then(r=>r.json());
+  if (!up.success) { status.textContent = '❌ ' + (up.error||'Upload failed'); return; }
+  await runImportPipeline(up.transactions, status);
+}
+
+async function handleSheetsImport() {
+  const url = $('sheetsUrl').value.trim();
+  const status = $('sheetsStatus');
+  status.style.display = 'block';
+  if (!url) { status.textContent = '❌ Please enter a Google Sheets URL'; return; }
+  // Extract sheet ID and build CSV export URL
+  const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+  if (!match) { status.textContent = '❌ Invalid Google Sheets URL'; return; }
+  const sheetId = match[1];
+  const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=0`;
+  status.innerHTML = '<span class="spinner"></span> Fetching sheet data…';
+  try {
+    const csvText = await fetch(csvUrl).then(r => { if(!r.ok) throw new Error('Could not fetch — make sure the sheet is publicly shared'); return r.text(); });
+    // Convert CSV text to transaction objects via /upload endpoint (send as text)
+    const fd = new FormData();
+    const blob = new Blob([csvText], {type:'text/csv'});
+    fd.append('file', blob, 'sheet.csv');
+    const up = await fetch('/upload', {method:'POST', body:fd}).then(r=>r.json());
+    if (!up.success) { status.textContent = '❌ ' + (up.error||'Failed to parse sheet'); return; }
+    await runImportPipeline(up.transactions, status);
+  } catch(e) {
+    status.textContent = '❌ ' + e.message;
+  }
+}
+
+function handleReceiptDrop(e) {
+  e.preventDefault();
+  $('receiptDropZone').classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) _uploadReceipt(file);
+}
+
+function handleReceiptImport(input) {
+  const file = input.files[0];
+  if (!file) return;
+  input.value = '';
+  _uploadReceipt(file);
+}
+
+async function _uploadReceipt(file) {
+  const status = $('receiptStatus');
+  const resultCard = $('paystubResultCard');
+  resultCard.style.display = 'none';
+  status.style.display = 'block';
+  status.innerHTML = `<span class="spinner"></span> Claude AI is reading <strong>${file.name}</strong>…`;
+
+  const fd = new FormData();
+  fd.append('file', file);
+
+  let res;
+  try {
+    const r = await fetch('/receipt', {method:'POST', body:fd});
+    const text = await r.text();
+    try { res = JSON.parse(text); }
+    catch { throw new Error('Server returned unexpected response. Check that ANTHROPIC_API_KEY is set.'); }
+  } catch(e) {
+    status.innerHTML = `<span style="color:var(--expense)">❌ Error: ${e.message}</span>`;
+    return;
+  }
+
+  if (!res.success) {
+    status.innerHTML = `<span style="color:var(--expense)">❌ ${res.error || 'Could not read document'}</span>`;
+    return;
+  }
+
+  // ── Pay stub: show confirmation card ─────────────────────────────────
+  if (res.doc_type === 'paystub' && res.paystub) {
+    const s = res.paystub;
+    status.innerHTML = `✅ Pay stub detected and saved.`;
+    $('paystubResultBody').innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:13px">
+        <div><span style="color:var(--muted);font-size:11px">EMPLOYEE</span><br><strong>${s.employee_name||'—'}</strong></div>
+        <div><span style="color:var(--muted);font-size:11px">EMPLOYER</span><br><strong>${s.employer_name||'—'}</strong></div>
+        <div><span style="color:var(--muted);font-size:11px">PAY DATE</span><br><strong>${s.pay_date||'—'}</strong></div>
+        <div><span style="color:var(--muted);font-size:11px">PERIOD</span><br><strong>${s.period_start||'—'} → ${s.period_end||'—'}</strong></div>
+        <div><span style="color:var(--muted);font-size:11px">GROSS PAY</span><br><strong style="color:var(--income)">${fmt(s.gross_pay)}</strong></div>
+        <div><span style="color:var(--muted);font-size:11px">NET PAY</span><br><strong style="color:var(--accent)">${fmt(s.net_pay)}</strong></div>
+        <div><span style="color:var(--muted);font-size:11px">DEDUCTIONS</span><br><strong style="color:var(--expense)">${fmt(s.total_deductions)}</strong></div>
+        <div><span style="color:var(--muted);font-size:11px">JOB TITLE</span><br><strong>${s.job_title||'—'}</strong></div>
+        <div><span style="color:var(--muted);font-size:11px">DEPARTMENT</span><br><strong>${s.department||'—'}</strong></div>
+      </div>
+    `;
+    resultCard.style.display = 'block';
+    return;
+  }
+
+  // ── Generic document: run the transaction import pipeline ─────────────
+  const txns = res.transactions || [];
+  if (!txns.length) {
+    status.innerHTML = `<span style="color:var(--warning)">⚠ No transactions found in document.</span>`;
+    return;
+  }
+  await runImportPipeline(txns, status);
+}
+
+async function runImportPipeline(rawTxns, statusEl) {
+  statusEl.innerHTML = `<span class="spinner"></span> AI cleaning ${rawTxns.length} rows…`;
+  const cl = await api('POST', '/clean', {transactions: rawTxns});
+  let cleanedRows = cl.success ? cl.transactions : rawTxns;
+
+  statusEl.innerHTML = `<span class="spinner"></span> AI categorizing ${cleanedRows.length} transactions…`;
+  const BATCH = 80; let allCats = [];
+  for (let b = 0; b < Math.ceil(cleanedRows.length / BATCH); b++) {
+    const offset = b * BATCH;
+    const res = await api('POST', '/categorize', {transactions: cleanedRows.slice(offset, offset+BATCH), id_offset: offset});
+    allCats = allCats.concat(res.categories || []);
+  }
+
+  const catMap = {};
+  allCats.forEach(c => { catMap[c.id] = c; });
+  importRows = cleanedRows.map((r, i) => {
+    const info = catMap[i+1] || {};
+    return {...r, category: info.category||'Uncategorized', tx_type: info.type||(parseFloat(r.amount)>=0?'income':'expense')};
+  });
+
+  statusEl.textContent = cl.agent_notes ? '🤖 ' + cl.agent_notes : `Ready — ${importRows.length} transactions to import`;
+  $('importCount').textContent = importRows.length + ' rows';
+  $('importPreviewBody').innerHTML = importRows.slice(0, 50).map(r=>`<tr>
+    <td style="color:var(--muted)">${r.date}</td>
+    <td style="font-weight:500">${r.description}</td>
+    <td class="${r.tx_type==='income'?'amt-inc':'amt-exp'}">${fmt(parseFloat(r.amount))}</td>
+    <td><span style="font-size:11px;color:var(--muted)">${r.category}</span></td>
+    <td><span class="badge badge-${r.tx_type}">${r.tx_type}</span></td>
+  </tr>`).join('') + (importRows.length > 50 ? `<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:8px">…and ${importRows.length-50} more rows</td></tr>` : '');
+  $('importPreviewWrap').style.display = 'block';
+  $('importConfirmBtn').disabled = false;
+}
+
+async function confirmImport() {
+  $('importConfirmBtn').disabled = true;
+  $('importConfirmBtn').innerHTML = '<span class="spinner"></span> Importing…';
+  const res = await api('POST', '/api/transactions/bulk', importRows);
+  closeModal('importModal');
+  await loadLedger();
+  if (currentModule === 'dashboard') await loadDashboard();
+  addAIMessage('assistant', `✅ Imported **${res.added} transactions** successfully! Head to the Dashboard to see your updated financials.`);
 }
 
 // ── P&L ────────────────────────────────────────────────────────────────────
@@ -708,7 +1498,7 @@ async function loadPL() {
   const url = months === 'all' ? '/api/pl' : `/api/pl?months=${months}`;
   const d = await api('GET', url);
   const cols = d.columns;
-  const fmtNum = n => n ? fmt(n) : '<span style="color:var(--border)">—</span>';
+  const fmtNum = n => n ? fmt(n) : '<span style="color:var(--subtle)">—</span>';
 
   let html = `<div style="overflow-x:auto"><table class="pl-table"><thead><tr>
     <th style="text-align:left">Account</th>
@@ -716,28 +1506,24 @@ async function loadPL() {
     <th>Total</th>
   </tr></thead><tbody>`;
 
-  // Income section
   html += `<tr class="pl-section-header"><td colspan="${cols.length+2}">INCOME</td></tr>`;
   (d.income_rows||[]).forEach(r => {
-    html += `<tr><td>${r.category}</td>${r.months.map(fmtNum).join('')}<td style="font-weight:600;color:var(--income)">${fmtNum(r.total)}</td></tr>`;
+    html += `<tr><td>${r.category}</td>${r.months.map(fmtNum).join('')}<td style="font-weight:700;color:var(--income)">${fmtNum(r.total)}</td></tr>`;
   });
   html += `<tr class="pl-total"><td>Total Income</td>${d.total_income.map(v=>`<td style="color:var(--income)">${fmtNum(v)}</td>`).join('')}<td style="color:var(--income)">${fmtNum(d.total_income.reduce((a,b)=>a+b,0))}</td></tr>`;
 
-  // Expense section
   html += `<tr class="pl-section-header"><td colspan="${cols.length+2}">EXPENSES</td></tr>`;
   (d.expense_rows||[]).forEach(r => {
-    html += `<tr><td>${r.category}</td>${r.months.map(fmtNum).join('')}<td style="font-weight:600;color:var(--expense)">${fmtNum(r.total)}</td></tr>`;
+    html += `<tr><td>${r.category}</td>${r.months.map(fmtNum).join('')}<td style="font-weight:700;color:var(--expense)">${fmtNum(r.total)}</td></tr>`;
   });
   html += `<tr class="pl-total"><td>Total Expenses</td>${d.total_expense.map(v=>`<td style="color:var(--expense)">${fmtNum(v)}</td>`).join('')}<td style="color:var(--expense)">${fmtNum(d.total_expense.reduce((a,b)=>a+b,0))}</td></tr>`;
 
-  // Net
   const totalNet = d.net_profit.reduce((a,b)=>a+b,0);
-  html += `<tr class="pl-net"><td>NET PROFIT / LOSS</td>${d.net_profit.map(v=>`<td style="color:${v>=0?'var(--income)':'var(--expense)'}">${fmtNum(v)}</td>`).join('')}<td style="color:${totalNet>=0?'var(--income)':'var(--expense)'};font-size:15px">${fmtNum(totalNet)}</td></tr>`;
-
+  html += `<tr class="pl-net"><td>NET PROFIT / LOSS</td>${d.net_profit.map(v=>`<td style="color:${v>=0?'var(--income)':'var(--expense)'}">${fmtNum(v)}</td>`).join('')}<td style="color:${totalNet>=0?'var(--income)':'var(--expense)'};font-size:16px">${fmtNum(totalNet)}</td></tr>`;
   html += '</tbody></table></div>';
 
   if (!d.income_rows.length && !d.expense_rows.length) {
-    html = '<div class="empty"><div class="empty-icon">📈</div><p>No transaction data yet.<br>Add transactions in the Ledger to generate your P&L.</p></div>';
+    html = '<div class="empty"><div class="empty-icon">📈</div><h3>No data yet</h3><p>Add transactions in the Ledger to generate your P&L statement.</p></div>';
   }
   $('plWrap').innerHTML = html;
 }
@@ -748,7 +1534,7 @@ async function loadInvoices() {
   const invs = await api('GET', '/api/invoices');
   $('inv-count').textContent = `${invs.length} invoice${invs.length!==1?'s':''}`;
   if (!invs.length) {
-    $('inv-list').innerHTML = '<div class="empty"><div class="empty-icon">🧾</div><p>No invoices yet.<br>Click + New Invoice to create your first.</p></div>';
+    $('inv-list').innerHTML = '<div class="empty"><div class="empty-icon">🧾</div><h3>No invoices yet</h3><p>Create your first invoice to start<br>tracking client payments.</p><button class="btn btn-accent" onclick="newInvoice()">+ New Invoice</button></div>';
     return;
   }
   $('inv-list').innerHTML = invs.map(inv => `
@@ -783,33 +1569,26 @@ async function openInvoice(id) {
   const inv = await api('GET', `/api/invoices`).then(list => list.find(i=>i.id===id));
   if (!inv) return;
   $('inv-form-mode').textContent = inv.number;
-  $('inv-number').value  = inv.number;
-  $('inv-client').value  = inv.client_name || '';
-  $('inv-email').value   = inv.client_email || '';
-  $('inv-date').value    = inv.date || today();
-  $('inv-due').value     = inv.due_date || '';
-  $('inv-status').value  = inv.status;
-  $('inv-tax').value     = inv.tax_rate || 0;
-  $('inv-notes').value   = inv.notes || '';
-  $('inv-items-body').innerHTML = '';
-  invLines = [];
+  $('inv-number').value = inv.number; $('inv-client').value = inv.client_name||'';
+  $('inv-email').value = inv.client_email||''; $('inv-date').value = inv.date||today();
+  $('inv-due').value = inv.due_date||''; $('inv-status').value = inv.status;
+  $('inv-tax').value = inv.tax_rate||0; $('inv-notes').value = inv.notes||'';
+  $('inv-items-body').innerHTML = ''; invLines = [];
   (inv.items||[]).forEach(it => addInvLine(it));
   recalcInv();
   $('inv-form-wrap').style.display = 'block';
-  document.querySelectorAll('.inv-list-item').forEach(el => el.classList.remove('selected'));
   loadInvoices();
 }
 
 function addInvLine(data={}) {
-  const idx = invLines.length;
-  invLines.push(data);
+  const idx = invLines.length; invLines.push(data);
   const tr = document.createElement('tr');
   tr.innerHTML = `
     <td><input value="${data.description||''}" oninput="invLines[${idx}].description=this.value;recalcInv()"></td>
     <td><input type="number" value="${data.quantity||1}" min="0" oninput="invLines[${idx}].quantity=+this.value;recalcInv()" style="width:60px"></td>
     <td><input type="number" value="${data.rate||0}" min="0" step="0.01" oninput="invLines[${idx}].rate=+this.value;recalcInv()" style="width:80px"></td>
     <td id="inv-line-amt-${idx}" style="text-align:right;padding-right:8px">${fmt((data.quantity||1)*(data.rate||0))}</td>
-    <td><button onclick="removeInvLine(${idx})" style="background:none;border:none;color:var(--expense);cursor:pointer">×</button></td>`;
+    <td><button onclick="removeInvLine(${idx})" style="background:none;border:none;color:var(--expense);cursor:pointer;font-size:16px">×</button></td>`;
   $('inv-items-body').appendChild(tr);
 }
 
@@ -821,123 +1600,205 @@ function removeInvLine(idx) {
 
 function recalcInv() {
   const lines = invLines.filter(Boolean);
-  const sub = lines.reduce((s,l) => s + (l.quantity||1)*(l.rate||0), 0);
+  const sub = lines.reduce((s,l) => s+(l.quantity||1)*(l.rate||0), 0);
   const tax = sub * (+$('inv-tax').value||0) / 100;
-  lines.forEach((l,i) => {
-    const el = $(`inv-line-amt-${i}`);
-    if (el) el.textContent = fmt((l.quantity||1)*(l.rate||0));
-  });
+  lines.forEach((l,i) => { const el = $(`inv-line-amt-${i}`); if(el) el.textContent = fmt((l.quantity||1)*(l.rate||0)); });
   $('inv-subtotal').textContent = fmt(sub);
   $('inv-tax-amt').textContent  = fmt(tax);
   $('inv-total').textContent    = fmt(sub+tax);
 }
 
 async function saveInvoice() {
-  const lines = invLines.filter(Boolean).map(l => ({description:l.description||'',quantity:l.quantity||1,rate:l.rate||0}));
-  const body = {
-    number:$('inv-number').value, client_name:$('inv-client').value,
-    client_email:$('inv-email').value, date:$('inv-date').value,
-    due_date:$('inv-due').value, status:$('inv-status').value,
-    tax_rate:+$('inv-tax').value, notes:$('inv-notes').value, items:lines
-  };
+  const lines = invLines.filter(Boolean).map(l=>({description:l.description||'',quantity:l.quantity||1,rate:l.rate||0}));
+  const body = {number:$('inv-number').value, client_name:$('inv-client').value, client_email:$('inv-email').value, date:$('inv-date').value, due_date:$('inv-due').value, status:$('inv-status').value, tax_rate:+$('inv-tax').value, notes:$('inv-notes').value, items:lines};
   if (currentInvoiceId) await api('PUT',`/api/invoices/${currentInvoiceId}`,body);
   else await api('POST','/api/invoices',body);
-  $('inv-form-wrap').style.display = 'none';
-  currentInvoiceId = null;
+  $('inv-form-wrap').style.display = 'none'; currentInvoiceId = null;
   await loadInvoices();
 }
 
-async function markInvoice(status) {
-  if (!currentInvoiceId) return;
-  $('inv-status').value = status;
-  await saveInvoice();
-}
-
+async function markInvoice(status) { if(!currentInvoiceId) return; $('inv-status').value=status; await saveInvoice(); }
 async function deleteInvoice() {
-  if (!currentInvoiceId) return;
-  if (!confirm('Delete this invoice?')) return;
+  if(!currentInvoiceId || !confirm('Delete this invoice?')) return;
   await api('DELETE',`/api/invoices/${currentInvoiceId}`);
-  currentInvoiceId = null;
-  $('inv-form-wrap').style.display = 'none';
-  await loadInvoices();
+  currentInvoiceId = null; $('inv-form-wrap').style.display='none'; await loadInvoices();
 }
 
-// ── Expenses ───────────────────────────────────────────────────────────────
+// ── Expenses (cross-connected) ─────────────────────────────────────────────
+let _expDebounce = null;
+let _allExpRows  = [];   // full unfiltered result from last API call
+
+function debounceExpFilter() {
+  clearTimeout(_expDebounce);
+  _expDebounce = setTimeout(applyExpFilters, 350);
+}
+
+function clearExpFilters() {
+  $('ef-search').value = '';
+  $('ef-from').value   = '';
+  $('ef-to').value     = '';
+  $('ef-cat').value    = '';
+  $('ef-source').value = '';
+  applyExpFilters();
+}
+
+async function applyExpFilters() {
+  const params = new URLSearchParams();
+  const search = $('ef-search').value.trim();
+  const from   = $('ef-from').value;
+  const to     = $('ef-to').value;
+  const cat    = $('ef-cat').value;
+  const src    = $('ef-source').value;
+  if (search) params.set('search',    search);
+  if (from)   params.set('date_from', from);
+  if (to)     params.set('date_to',   to);
+  if (cat)    params.set('category',  cat);
+  if (src)    params.set('source',    src);
+
+  const data = await api('GET', `/api/expenses/all?${params.toString()}`);
+  if (!data || !data.rows) return;
+
+  _allExpRows = data.rows;
+  _renderExpenseGrid(data);
+}
+
+function _renderExpenseGrid(data) {
+  const rows  = data.rows || [];
+  const count = data.count || 0;
+
+  // Update KPIs
+  $('exp-kpi-total').textContent = fmt(data.total_amount || 0);
+  $('exp-kpi-count').textContent = count.toLocaleString();
+
+  // Source breakdown chips
+  const srcEl = $('exp-kpi-sources');
+  srcEl.innerHTML = (data.by_source || []).map(s => {
+    const key = s.source.includes('Payroll') ? 'payroll' : s.source.includes('Trans') ? 'transaction' : 'expense';
+    return `<span class="src-chip ${key}">
+      ${s.source}: <strong>${fmt(s.total)}</strong>
+    </span>`;
+  }).join('');
+
+  // Result count label
+  $('exp-result-count').textContent = count > 0
+    ? `Showing ${count.toLocaleString()} records · Total: ${fmt(data.total_amount)}`
+    : 'No records match the current filters.';
+
+  // Build or update grid
+  const columnDefs = [
+    {field:'date',        headerName:'Date',        width:110, sortable:true, filter:'agDateColumnFilter'},
+    {field:'source',      headerName:'Source',      width:160, sortable:true, filter:true,
+      cellRenderer: p => {
+        const key = (p.value||'').includes('Payroll') ? 'payroll' : (p.value||'').includes('Trans') ? 'transaction' : 'expense';
+        return `<span class="src-badge src-badge-${key}">${p.value||'—'}</span>`;
+      }},
+    {field:'vendor',      headerName:'Vendor / Dept', width:160, editable: p=>p.data.source_key==='expense', filter:true},
+    {field:'description', headerName:'Description', flex:2,    editable: p=>p.data.source_key==='expense', filter:true},
+    {field:'amount',      headerName:'Amount',      width:120, type:'rightAligned',
+      valueFormatter: p => p.value != null ? fmt(p.value) : '',
+      cellClass: 'amt-exp', filter:'agNumberColumnFilter'},
+    {field:'category',    headerName:'Category',    width:190, editable: p=>p.data.source_key==='expense',
+      cellEditor:'agSelectCellEditor', cellEditorParams:{values:CATEGORIES}, filter:true},
+    {field:'status',      headerName:'Status',      width:110, filter:true,
+      cellRenderer: p => {
+        const v = p.value || 'imported';
+        const cls = v==='active'||v==='approved'?'active': v==='pending'?'warning': v==='imported'?'draft':'draft';
+        return `<span class="badge badge-${cls}">${v}</span>`;
+      }},
+    {headerName:'', width:46, sortable:false, resizable:false,
+      cellRenderer: p => p.data.source_key === 'expense'
+        ? `<button onclick="delExpense('${p.data.id}')" style="background:none;border:none;color:var(--expense);cursor:pointer;font-size:17px;padding:0 4px">×</button>`
+        : ''}
+  ];
+
+  if (grids.expenses) {
+    grids.expenses.setGridOption('columnDefs', columnDefs);
+    grids.expenses.setGridOption('rowData', rows);
+  } else {
+    grids.expenses = agGrid.createGrid($('expensesGrid'), {
+      columnDefs,
+      rowData: rows,
+      defaultColDef: {resizable:true, sortable:true},
+      animateRows: true,
+      pagination: true,
+      paginationPageSize: 500,
+      paginationPageSizeSelector: [100, 250, 500, 1000, 5000],
+      onCellValueChanged: async e => {
+        if (e.data.source_key === 'expense') {
+          const realId = String(e.data.id).replace('e-','');
+          await api('PUT', `/api/expenses/${realId}`, {
+            date: e.data.date, vendor: e.data.vendor,
+            description: e.data.description, category: e.data.category,
+            amount: e.data.amount
+          });
+        }
+      }
+    });
+  }
+}
+
 async function loadExpenses() {
-  // Populate category dropdown
-  const sel = $('exp-cat');
-  if (sel.options.length <= 1) {
-    CATEGORIES.forEach(c => { const o = document.createElement('option'); o.value=o.textContent=c; sel.appendChild(o); });
+  // Populate category dropdowns
+  const selQuick = $('exp-cat');
+  if (selQuick && selQuick.options.length <= 1) {
+    CATEGORIES.forEach(c=>{const o=document.createElement('option');o.value=o.textContent=c;selQuick.appendChild(o);});
+  }
+  const selFilter = $('ef-cat');
+  if (selFilter && selFilter.options.length <= 1) {
+    CATEGORIES.forEach(c=>{const o=document.createElement('option');o.value=o.textContent=c;selFilter.appendChild(o);});
   }
   if (!$('exp-date').value) $('exp-date').value = today();
 
-  const rows = await api('GET', '/api/expenses');
-  if (grids.expenses) { grids.expenses.setGridOption('rowData', rows); return; }
-
-  const colDefs = [
-    {field:'date', headerName:'Date', editable:true, width:110},
-    {field:'vendor', headerName:'Vendor', editable:true, width:140},
-    {field:'description', headerName:'Description', editable:true, flex:2},
-    {field:'amount', headerName:'Amount', editable:true, width:120, type:'rightAligned',
-     valueFormatter:p=>p.value!=null?fmt(p.value):'', cellClass:'amt-exp'},
-    {field:'category', headerName:'Category', editable:true, width:180,
-     cellEditor:'agSelectCellEditor', cellEditorParams:{values:CATEGORIES}},
-    {field:'status', headerName:'Status', editable:true, width:120,
-     cellEditor:'agSelectCellEditor', cellEditorParams:{values:['pending','approved','reimbursed']},
-     cellRenderer:p=>`<span class="badge badge-${p.value||'pending'}">${p.value||'pending'}</span>`},
-    {headerName:'', width:50, sortable:false, resizable:false,
-     cellRenderer:p=>`<button onclick="delExpense(${p.data.id})" style="background:none;border:none;color:var(--expense);cursor:pointer;font-size:16px;padding:0 4px">×</button>`}
-  ];
-
-  grids.expenses = agGrid.createGrid($('expensesGrid'), {
-    columnDefs:colDefs, rowData:rows,
-    defaultColDef:{resizable:true, sortable:true, filter:true},
-    animateRows:true, pagination:true, paginationPageSize:100,
-    onCellValueChanged: async e => {
-      if (e.data.id) await api('PUT', `/api/expenses/${e.data.id}`, e.data);
-    }
-  });
+  // Load all cross-connected data
+  await applyExpFilters();
 }
 
 async function addExpense() {
   const body = {
-    date:$('exp-date').value||today(),
-    vendor:$('exp-vendor').value,
-    description:$('exp-desc').value,
-    amount:parseFloat($('exp-amount').value)||0,
-    category:$('exp-cat').value||'Uncategorized',
-    status:'pending'
+    date: $('exp-date').value || today(),
+    vendor: $('exp-vendor').value,
+    description: $('exp-desc').value,
+    amount: parseFloat($('exp-amount').value) || 0,
+    category: $('exp-cat').value || 'Uncategorized',
+    status: 'pending'
   };
   if (!body.description) return;
-  const saved = await api('POST', '/api/expenses', body);
-  grids.expenses && grids.expenses.applyTransaction({add:[saved]});
+  await api('POST', '/api/expenses', body);
   $('exp-vendor').value = $('exp-desc').value = $('exp-amount').value = '';
+  // Close the details and reload
+  $('exp-add-details').removeAttribute('open');
+  await applyExpFilters();
 }
 
-async function delExpense(id) {
-  await api('DELETE', `/api/expenses/${id}`);
-  const rows = [];
-  grids.expenses && grids.expenses.forEachNode(n => { if(n.data.id===id) rows.push(n.data); });
-  grids.expenses && grids.expenses.applyTransaction({remove:rows});
+async function delExpense(compositeId) {
+  const realId = String(compositeId).replace('e-','');
+  await api('DELETE', `/api/expenses/${realId}`);
+  await applyExpFilters();
 }
 
 async function aiCategorizeExpenses() {
   if (!grids.expenses) return;
+  // Only categorize manual expense rows (source_key === 'expense')
   const allRows = [];
-  grids.expenses.forEachNode(n => allRows.push(n.data));
-  if (!allRows.length) return;
+  grids.expenses.forEachNode(n => { if (n.data.source_key === 'expense') allRows.push(n.data); });
+  if (!allRows.length) { alert('AI Categorize applies to Manual Expenses only. Load some first.'); return; }
+
   const BATCH = 80;
-  for (let b = 0; b < Math.ceil(allRows.length/BATCH); b++) {
+  for (let b = 0; b < Math.ceil(allRows.length / BATCH); b++) {
     const offset = b * BATCH;
-    const slice  = allRows.slice(offset, offset+BATCH).map(r=>({date:r.date||'',description:(r.vendor||'')+' '+r.description,amount:String(r.amount||0)}));
-    const res = await api('POST', '/categorize', {transactions:slice, id_offset:offset});
-    (res.categories||[]).forEach(c => {
-      const row = allRows[c.id-1]; if(!row) return;
+    const slice = allRows.slice(offset, offset + BATCH).map(r => ({
+      date: r.date || '', description: (r.vendor || '') + ' ' + r.description, amount: String(r.amount || 0)
+    }));
+    const res = await api('POST', '/categorize', {transactions: slice, id_offset: offset});
+    for (const c of (res.categories || [])) {
+      const row = allRows[c.id - 1];
+      if (!row) continue;
       row.category = c.category;
-      grids.expenses.applyTransaction({update:[row]});
-      api('PUT', `/api/expenses/${row.id}`, row);
-    });
+      const realId = String(row.id).replace('e-', '');
+      await api('PUT', `/api/expenses/${realId}`, row);
+    }
   }
+  await applyExpFilters();
 }
 
 // ── Payroll ────────────────────────────────────────────────────────────────
@@ -945,144 +1806,700 @@ async function loadPayroll() {
   const emps = await api('GET', '/api/employees');
   if (grids.employees) { grids.employees.setGridOption('rowData', emps); }
   else {
-    const colDefs = [
-      {field:'name', headerName:'Name', editable:true, flex:1},
-      {field:'title', headerName:'Title', editable:true, flex:1},
-      {field:'email', headerName:'Email', editable:true, flex:1},
-      {field:'pay_type', headerName:'Pay Type', editable:true, width:100,
-       cellEditor:'agSelectCellEditor', cellEditorParams:{values:['salary','hourly']}},
-      {field:'pay_rate', headerName:'Rate ($)', editable:true, width:110, type:'rightAligned',
-       valueFormatter:p=>p.value!=null?fmt(p.value):''},
-      {field:'status', headerName:'Status', editable:true, width:90,
-       cellEditor:'agSelectCellEditor', cellEditorParams:{values:['active','inactive']},
-       cellRenderer:p=>`<span class="badge badge-${p.value==='active'?'active':'draft'}">${p.value}</span>`},
-      {headerName:'', width:50, sortable:false,
-       cellRenderer:p=>`<button onclick="delEmployee(${p.data.id})" style="background:none;border:none;color:var(--expense);cursor:pointer;font-size:16px">×</button>`}
-    ];
     grids.employees = agGrid.createGrid($('employeesGrid'), {
-      columnDefs:colDefs, rowData:emps,
-      defaultColDef:{resizable:true, sortable:true},
+      columnDefs:[
+        {field:'name', headerName:'Name', editable:true, flex:1},
+        {field:'title', headerName:'Title', editable:true, flex:1},
+        {field:'email', headerName:'Email', editable:true, flex:1},
+        {field:'pay_type', headerName:'Pay Type', editable:true, width:100, cellEditor:'agSelectCellEditor', cellEditorParams:{values:['salary','hourly']}},
+        {field:'pay_rate', headerName:'Rate ($)', editable:true, width:110, type:'rightAligned', valueFormatter:p=>p.value!=null?fmt(p.value):''},
+        {field:'status', headerName:'Status', editable:true, width:90, cellEditor:'agSelectCellEditor', cellEditorParams:{values:['active','inactive']}, cellRenderer:p=>`<span class="badge badge-${p.value==='active'?'active':'draft'}">${p.value}</span>`},
+        {headerName:'', width:50, sortable:false, cellRenderer:p=>`<button onclick="delEmployee(${p.data.id})" style="background:none;border:none;color:var(--expense);cursor:pointer;font-size:17px">×</button>`}
+      ],
+      rowData:emps, defaultColDef:{resizable:true,sortable:true},
       animateRows:true,
-      onCellValueChanged: async e => { if(e.data.id) await api('PUT',`/api/employees/${e.data.id}`,e.data); }
+      onCellValueChanged: async e=>{if(e.data.id) await api('PUT',`/api/employees/${e.data.id}`,e.data);}
     });
   }
-
   const runs = await api('GET', '/api/payroll');
   $('payrollRunsBody').innerHTML = runs.length ? runs.map(r=>`<tr>
-    <td>${r.period_start} – ${r.period_end}</td>
-    <td>${r.pay_date}</td>
-    <td class="amt-inc">${fmt(r.total_gross)}</td>
-    <td>${fmt(r.total_net)}</td>
+    <td>${r.period_start} – ${r.period_end}</td><td>${r.pay_date}</td>
+    <td class="amt-inc">${fmt(r.total_gross)}</td><td>${fmt(r.total_net)}</td>
     <td><span class="badge badge-${r.status==='processed'?'paid':'draft'}">${r.status}</span></td>
     <td><button onclick="markPayrollProcessed(${r.id})" class="btn btn-sm">Process</button></td>
-  </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px">No payroll runs yet</td></tr>';
+  </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">No payroll runs yet</td></tr>';
 }
 
-function openAddEmployee() {
-  $('emp-name').value=$('emp-title').value=$('emp-email').value=$('emp-rate').value='';
-  $('emp-start').value=today(); $('emp-paytype').value='salary';
-  $('empModal').classList.add('open');
-}
-
+function openAddEmployee() { $('emp-name').value=$('emp-title').value=$('emp-email').value=$('emp-rate').value=''; $('emp-start').value=today(); $('emp-paytype').value='salary'; $('empModal').classList.add('open'); }
 async function saveEmployee() {
   const body={name:$('emp-name').value,title:$('emp-title').value,email:$('emp-email').value,pay_type:$('emp-paytype').value,pay_rate:+$('emp-rate').value,start_date:$('emp-start').value,status:'active'};
   if(!body.name) return;
-  const saved = await api('POST','/api/employees',body);
-  grids.employees && grids.employees.applyTransaction({add:[saved]});
-  closeModal('empModal');
+  const saved=await api('POST','/api/employees',body);
+  grids.employees&&grids.employees.applyTransaction({add:[saved]}); closeModal('empModal');
 }
-
 async function delEmployee(id) {
   await api('DELETE',`/api/employees/${id}`);
-  const rows=[];
-  grids.employees && grids.employees.forEachNode(n=>{if(n.data.id===id)rows.push(n.data);});
-  grids.employees && grids.employees.applyTransaction({remove:rows});
+  const rows=[]; grids.employees&&grids.employees.forEachNode(n=>{if(n.data.id===id)rows.push(n.data);});
+  grids.employees&&grids.employees.applyTransaction({remove:rows});
 }
-
 function openRunPayroll() {
-  const d=new Date(), e=new Date(d.getFullYear(),d.getMonth()+1,0);
+  const d=new Date(),e=new Date(d.getFullYear(),d.getMonth()+1,0);
   $('pr-start').value=new Date(d.getFullYear(),d.getMonth(),1).toISOString().split('T')[0];
-  $('pr-end').value=e.toISOString().split('T')[0];
-  $('pr-date').value=today();
-  $('payrollModal').classList.add('open');
+  $('pr-end').value=e.toISOString().split('T')[0]; $('pr-date').value=today(); $('payrollModal').classList.add('open');
 }
-
-async function runPayroll() {
-  const body={period_start:$('pr-start').value,period_end:$('pr-end').value,pay_date:$('pr-date').value};
-  await api('POST','/api/payroll',body);
-  closeModal('payrollModal');
-  await loadPayroll();
-}
-
-async function markPayrollProcessed(id) {
-  await api('PUT',`/api/payroll/${id}`,{status:'processed'});
-  await loadPayroll();
-}
+async function runPayroll() { const body={period_start:$('pr-start').value,period_end:$('pr-end').value,pay_date:$('pr-date').value}; await api('POST','/api/payroll',body); closeModal('payrollModal'); await loadPayroll(); }
+async function markPayrollProcessed(id) { await api('PUT',`/api/payroll/${id}`,{status:'processed'}); await loadPayroll(); }
 
 // ── Marketing ──────────────────────────────────────────────────────────────
 async function loadMarketing() {
   const camps = await api('GET', '/api/marketing');
-  // Update KPIs
-  const tot = (f) => camps.reduce((s,c)=>s+(c[f]||0),0);
-  $('mkt-budget').textContent  = fmt(tot('budget'));
-  $('mkt-spent').textContent   = fmt(tot('spent'));
-  $('mkt-leads').textContent   = tot('leads').toLocaleString();
-  $('mkt-revenue').textContent = fmt(tot('revenue'));
-  const totalSpent = tot('spent'), totalRev = tot('revenue');
-  const avgRoi = totalSpent ? Math.round((totalRev-totalSpent)/totalSpent*100) : 0;
-  $('mkt-roi').textContent     = avgRoi + '%';
-  $('mkt-roi').style.color     = avgRoi >= 0 ? 'var(--income)' : 'var(--expense)';
-
-  if (grids.marketing) { grids.marketing.setGridOption('rowData', camps); return; }
-
-  const CHANNELS = ['Google Ads','Meta Ads','Instagram','Email','LinkedIn','TikTok','SEO','Content','Other'];
-  const colDefs = [
-    {field:'name', headerName:'Campaign', editable:true, flex:2},
-    {field:'channel', headerName:'Channel', editable:true, width:130,
-     cellEditor:'agSelectCellEditor', cellEditorParams:{values:CHANNELS}},
-    {field:'start_date', headerName:'Start', editable:true, width:110},
-    {field:'end_date',   headerName:'End',   editable:true, width:110},
-    {field:'budget', headerName:'Budget', editable:true, width:110, type:'rightAligned',
-     valueFormatter:p=>p.value!=null?fmt(p.value):''},
-    {field:'spent',  headerName:'Spent',  editable:true, width:110, type:'rightAligned',
-     valueFormatter:p=>p.value!=null?fmt(p.value):''},
-    {field:'clicks', headerName:'Clicks', editable:true, width:90, type:'rightAligned'},
-    {field:'leads',  headerName:'Leads',  editable:true, width:80, type:'rightAligned'},
-    {field:'revenue',headerName:'Revenue',editable:true, width:110, type:'rightAligned',
-     valueFormatter:p=>p.value!=null?fmt(p.value):''},
-    {field:'roi', headerName:'ROI', width:80, type:'rightAligned', editable:false,
-     valueFormatter:p=>p.value!=null?p.value+'%':'—',
-     cellClass:p=>p.value>=0?'amt-inc':'amt-exp'},
-    {field:'status', headerName:'Status', editable:true, width:100,
-     cellEditor:'agSelectCellEditor', cellEditorParams:{values:['active','paused','completed']},
-     cellRenderer:p=>`<span class="badge badge-${p.value==='active'?'active':p.value==='paused'?'warning':'draft'}">${p.value||'active'}</span>`},
-    {headerName:'', width:50, sortable:false,
-     cellRenderer:p=>`<button onclick="delCampaign(${p.data.id})" style="background:none;border:none;color:var(--expense);cursor:pointer;font-size:16px">×</button>`}
-  ];
-
-  grids.marketing = agGrid.createGrid($('marketingGrid'), {
-    columnDefs:colDefs, rowData:camps,
-    defaultColDef:{resizable:true, sortable:true, filter:true},
+  const tot = f => camps.reduce((s,c)=>s+(c[f]||0),0);
+  $('mkt-budget').textContent=fmt(tot('budget')); $('mkt-spent').textContent=fmt(tot('spent'));
+  $('mkt-leads').textContent=tot('leads').toLocaleString(); $('mkt-revenue').textContent=fmt(tot('revenue'));
+  const avgRoi=tot('spent')?Math.round((tot('revenue')-tot('spent'))/tot('spent')*100):0;
+  $('mkt-roi').textContent=avgRoi+'%'; $('mkt-roi').style.color=avgRoi>=0?'var(--income)':'var(--expense)';
+  if(grids.marketing){grids.marketing.setGridOption('rowData',camps);return;}
+  const CHANNELS=['Google Ads','Meta Ads','Instagram','Email','LinkedIn','TikTok','SEO','Content','Other'];
+  grids.marketing=agGrid.createGrid($('marketingGrid'),{
+    columnDefs:[
+      {field:'name',headerName:'Campaign',editable:true,flex:2},
+      {field:'channel',headerName:'Channel',editable:true,width:130,cellEditor:'agSelectCellEditor',cellEditorParams:{values:CHANNELS}},
+      {field:'start_date',headerName:'Start',editable:true,width:110},
+      {field:'end_date',headerName:'End',editable:true,width:110},
+      {field:'budget',headerName:'Budget',editable:true,width:110,type:'rightAligned',valueFormatter:p=>p.value!=null?fmt(p.value):''},
+      {field:'spent',headerName:'Spent',editable:true,width:110,type:'rightAligned',valueFormatter:p=>p.value!=null?fmt(p.value):''},
+      {field:'clicks',headerName:'Clicks',editable:true,width:90,type:'rightAligned'},
+      {field:'leads',headerName:'Leads',editable:true,width:80,type:'rightAligned'},
+      {field:'revenue',headerName:'Revenue',editable:true,width:110,type:'rightAligned',valueFormatter:p=>p.value!=null?fmt(p.value):''},
+      {field:'roi',headerName:'ROI',width:80,type:'rightAligned',editable:false,valueFormatter:p=>p.value!=null?p.value+'%':'—',cellClass:p=>p.value>=0?'amt-inc':'amt-exp'},
+      {field:'status',headerName:'Status',editable:true,width:100,cellEditor:'agSelectCellEditor',cellEditorParams:{values:['active','paused','completed']},cellRenderer:p=>`<span class="badge badge-${p.value==='active'?'active':p.value==='paused'?'warning':'draft'}">${p.value||'active'}</span>`},
+      {headerName:'',width:50,sortable:false,cellRenderer:p=>`<button onclick="delCampaign(${p.data.id})" style="background:none;border:none;color:var(--expense);cursor:pointer;font-size:17px">×</button>`}
+    ],
+    rowData:camps, defaultColDef:{resizable:true,sortable:true,filter:true},
     animateRows:true, pagination:true, paginationPageSize:50,
-    onCellValueChanged: async e => { if(e.data.id) await api('PUT',`/api/marketing/${e.data.id}`,e.data); }
+    onCellValueChanged: async e=>{if(e.data.id) await api('PUT',`/api/marketing/${e.data.id}`,e.data);}
   });
 }
-
 async function addCampaign() {
-  const row = {name:'New Campaign', channel:'Google Ads', start_date:today(), end_date:'', budget:0, spent:0, impressions:0, clicks:0, leads:0, revenue:0, status:'active'};
-  const saved = await api('POST','/api/marketing',row);
-  grids.marketing && grids.marketing.applyTransaction({add:[saved]});
+  const row={name:'New Campaign',channel:'Google Ads',start_date:today(),end_date:'',budget:0,spent:0,impressions:0,clicks:0,leads:0,revenue:0,status:'active'};
+  const saved=await api('POST','/api/marketing',row); grids.marketing&&grids.marketing.applyTransaction({add:[saved]});
 }
-
 async function delCampaign(id) {
   await api('DELETE',`/api/marketing/${id}`);
-  const rows=[];
-  grids.marketing && grids.marketing.forEachNode(n=>{if(n.data.id===id)rows.push(n.data);});
-  grids.marketing && grids.marketing.applyTransaction({remove:rows});
+  const rows=[]; grids.marketing&&grids.marketing.forEachNode(n=>{if(n.data.id===id)rows.push(n.data);});
+  grids.marketing&&grids.marketing.applyTransaction({remove:rows});
+}
+function exportMarketing() { if(grids.marketing) grids.marketing.exportDataAsCsv({fileName:'booksai-marketing.csv'}); }
+
+// ── Payroll Tabs ──────────────────────────────────────────────────────────
+function switchPayrollTab(tab) {
+  currentPayrollTab = tab;
+  document.querySelectorAll('.payroll-tab').forEach(b => b.classList.remove('active'));
+  $('ptab-' + tab).classList.add('active');
+  $('payroll-manage-section').style.display   = tab === 'manage'    ? '' : 'none';
+  $('payroll-paystubs-tab').style.display     = tab === 'paystubs'  ? '' : 'none';
+  $('payroll-analytics-tab').style.display    = tab === 'analytics' ? '' : 'none';
+  if (tab === 'analytics') loadPayrollAnalytics();
+  if (tab === 'paystubs')  loadPayStubs();
 }
 
-function exportMarketing() {
-  if (grids.marketing) grids.marketing.exportDataAsCsv({fileName:'booksai-marketing.csv'});
+// ── Pay Stubs ─────────────────────────────────────────────────────────────
+let _psCache = [];
+let _psActiveId = null;
+
+async function loadPayStubs() {
+  const stubs = await api('GET', '/api/paystubs');
+  _psCache = stubs || [];
+
+  if (!_psCache.length) {
+    $('psBody').innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:40px">No pay stubs uploaded yet. Use the <strong>Upload Pay Stub</strong> button above.</td></tr>';
+    $('ps-count').textContent = '';
+    $('ps-kpi-row').innerHTML = '';
+    $('psDetail').style.display = 'none';
+    return;
+  }
+
+  $('ps-count').textContent = `${_psCache.length} stub${_psCache.length!==1?'s':''}`;
+
+  // KPIs
+  const totalGross = _psCache.reduce((s,r)=>s+(r.gross_pay||0), 0);
+  const totalNet   = _psCache.reduce((s,r)=>s+(r.net_pay||0), 0);
+  const totalDed   = _psCache.reduce((s,r)=>s+(r.total_deductions||0), 0);
+  const employees  = new Set(_psCache.map(r=>r.employee_name).filter(Boolean)).size;
+  $('ps-kpi-row').innerHTML = `
+    <div class="kpi-card"><div class="kpi-icon green">💰</div><div class="kpi-label">Total Gross Pay</div><div class="kpi-val income">${fmt(totalGross)}</div><div class="kpi-sub">${_psCache.length} stubs</div></div>
+    <div class="kpi-card"><div class="kpi-icon red">📉</div><div class="kpi-label">Total Deductions</div><div class="kpi-val expense">${fmt(totalDed)}</div><div class="kpi-sub">All stubs</div></div>
+    <div class="kpi-card"><div class="kpi-icon teal">🏦</div><div class="kpi-label">Total Net Pay</div><div class="kpi-val">${fmt(totalNet)}</div><div class="kpi-sub">Take-home</div></div>
+    <div class="kpi-card"><div class="kpi-icon amber">👤</div><div class="kpi-label">Employees</div><div class="kpi-val">${employees}</div><div class="kpi-sub">Unique names</div></div>
+  `;
+
+  // Table — delete button is a full-size cell, not tiny inline text
+  $('psBody').innerHTML = _psCache.map(s => `
+    <tr id="ps-row-${s.id}" style="cursor:pointer;transition:background .1s"
+        onclick="showPayStubDetail(${s.id})"
+        onmouseenter="this.style.background='var(--surface2)'"
+        onmouseleave="this.style.background=_psActiveId===${s.id}?'var(--accent-light)':''">
+      <td style="color:var(--muted);font-size:12px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${s.filename||''}">${s.filename||'—'}</td>
+      <td style="font-weight:500">${s.employee_name||'—'}</td>
+      <td style="color:var(--muted)">${s.employer_name||'—'}</td>
+      <td>${s.pay_date||'—'}</td>
+      <td style="color:var(--muted);font-size:12px">${s.period_start&&s.period_end?s.period_start+' → '+s.period_end:s.period_start||s.period_end||'—'}</td>
+      <td class="amt-inc" style="text-align:right;font-weight:600">${fmt(s.gross_pay)}</td>
+      <td class="amt-exp" style="text-align:right">${fmt(s.total_deductions)}</td>
+      <td style="text-align:right;font-weight:700;color:var(--accent)">${fmt(s.net_pay)}</td>
+      <td style="text-align:center;padding:6px 8px">
+        <button
+          title="Delete this pay stub"
+          onclick="event.stopPropagation();delPayStub(${s.id})"
+          style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;border:1px solid var(--expense);background:var(--expense-bg);color:var(--expense);cursor:pointer;font-size:14px;transition:all .15s"
+          onmouseenter="this.style.background='var(--expense)';this.style.color='#fff'"
+          onmouseleave="this.style.background='var(--expense-bg)';this.style.color='var(--expense)'">
+          🗑
+        </button>
+      </td>
+    </tr>
+  `).join('');
+
+  // Re-highlight active row if detail panel is open
+  if (_psActiveId) _highlightPsRow(_psActiveId);
+}
+
+function _highlightPsRow(id) {
+  document.querySelectorAll('#psBody tr').forEach(r => r.style.background = '');
+  const row = $(`ps-row-${id}`);
+  if (row) row.style.background = 'var(--accent-light)';
+}
+
+async function showPayStubDetail(id) {
+  const s = _psCache.find(x => x.id === id);
+  if (!s) return;
+  _psActiveId = id;
+  _highlightPsRow(id);
+
+  $('psDetailTitle').textContent = `${s.employee_name||'Employee'} — ${s.pay_date||s.filename||'Pay Stub'}`;
+  $('psDetailDeleteBtn').onclick = () => delPayStub(id);
+
+  const rows = [
+    ['Employer',         s.employer_name],
+    ['Employee',         s.employee_name],
+    ['Employee ID',      s.employee_id],
+    ['Department',       s.department],
+    ['Job Title',        s.job_title],
+    ['Pay Date',         s.pay_date],
+    ['Period Start',     s.period_start],
+    ['Period End',       s.period_end],
+    ['Regular Pay',      fmt(s.regular_pay)],
+    ['Overtime Pay',     fmt(s.overtime_pay)],
+    ['Other Pay',        fmt(s.other_pay)],
+    ['Gross Pay',        fmt(s.gross_pay)],
+    ['Federal Tax',      fmt(s.federal_tax)],
+    ['State Tax',        fmt(s.state_tax)],
+    ['SS Tax',           fmt(s.ss_tax)],
+    ['Medicare Tax',     fmt(s.medicare_tax)],
+    ['Other Deductions', fmt(s.other_deductions)],
+    ['Total Deductions', fmt(s.total_deductions)],
+    ['Net Pay',          fmt(s.net_pay)],
+    ['Notes',            s.notes || '—'],
+  ];
+  $('psDetailBody').innerHTML = rows.map(([label, val]) => `
+    <div style="background:var(--surface2);border-radius:7px;padding:10px 12px">
+      <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">${label}</div>
+      <div style="font-size:13px;font-weight:500;color:var(--text)">${val||'—'}</div>
+    </div>
+  `).join('');
+
+  $('psDetail').style.display = 'block';
+  $('psDetail').scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+async function delPayStubFromDetail() {
+  if (_psActiveId) delPayStub(_psActiveId);
+}
+
+async function delPayStub(id) {
+  // Immediately remove the row for instant feedback — no confirm dialog
+  const row = $(`ps-row-${id}`);
+  if (row) {
+    row.style.opacity = '0.4';
+    row.style.pointerEvents = 'none';
+  }
+  if (_psActiveId === id) {
+    $('psDetail').style.display = 'none';
+    _psActiveId = null;
+  }
+
+  const res = await api('DELETE', `/api/paystubs/${id}`);
+  if (res && res.ok) {
+    _showDeleteToast('Pay stub deleted.');
+  }
+  await loadPayStubs();
+}
+
+function _showDeleteToast(msg) {
+  let toast = $('deleteToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'deleteToast';
+    toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:500;z-index:9999;opacity:0;transition:opacity .2s;pointer-events:none';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = '✅ ' + msg;
+  toast.style.opacity = '1';
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { toast.style.opacity = '0'; }, 2500);
+}
+
+// ── Payroll Import ────────────────────────────────────────────────────────
+function openPayrollImport() {
+  prUploadData = null;
+  $('prMappingWrap').style.display = 'none';
+  $('prUploadStatus').style.display = 'none';
+  $('prDropZone').innerHTML = `
+    <div class="upload-icon">📊</div>
+    <h4>Drop your payroll file here, or click to browse</h4>
+    <p>Supports CSV, Excel (.xlsx, .xls) · Up to 50,000 rows</p>
+    <input type="file" id="prFileInput" accept=".csv,.xlsx,.xls" style="display:none" onchange="handlePayrollFileSelect(this)">
+  `;
+  $('payrollImportModal').classList.add('open');
+}
+
+function handlePrDrop(e) {
+  e.preventDefault();
+  $('prDropZone').classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) uploadPayrollFile(file);
+}
+function handlePayrollFileSelect(input) {
+  if (input.files[0]) uploadPayrollFile(input.files[0]);
+}
+
+async function uploadPayrollFile(file) {
+  const status = $('prUploadStatus');
+  status.style.display = 'block';
+  status.innerHTML = `<span class="spinner"></span> Reading ${file.name}…`;
+  $('prMappingWrap').style.display = 'none';
+
+  const fd = new FormData();
+  fd.append('file', file);
+  let res;
+  try {
+    const r = await fetch('/upload/payroll', {method:'POST', body:fd});
+    res = await r.json();
+  } catch(e) {
+    status.innerHTML = `<span style="color:var(--expense)">❌ Upload failed: ${e.message}</span>`;
+    return;
+  }
+  if (!res.success) {
+    status.innerHTML = `<span style="color:var(--expense)">❌ ${res.error}</span>`;
+    return;
+  }
+
+  status.innerHTML = `✅ Detected <strong>${res.total.toLocaleString()}</strong> rows · ${Object.keys(res.mapping).length} columns mapped`;
+
+  // Store for import (allRows contains every row)
+  prUploadData = res;
+
+  // Show mapping chips
+  const mappingList = $('prMappingList');
+  mappingList.innerHTML = Object.entries(res.mapping).map(([canon, csv]) =>
+    `<span style="background:var(--accent-light);color:var(--accent);font-size:11px;font-weight:600;padding:3px 9px;border-radius:10px">
+      ${canon.replace(/_/g,' ')} → <em style="font-weight:400">${csv}</em>
+    </span>`
+  ).join('');
+  $('prMappingTitle').textContent = `Detected ${Object.keys(res.mapping).length} columns from ${file.name}`;
+
+  // Build preview table
+  const PREVIEW_FIELDS = ['pay_year','department_name','job_title','employment_type','job_status','total_pay','regular_pay','overtime_pay','benefits'];
+  const available = PREVIEW_FIELDS.filter(f => res.mapping[f]);
+  const head = $('prPreviewHead');
+  const body = $('prPreviewBody');
+  head.innerHTML = '<tr>' + available.map(f=>`<th>${f.replace(/_/g,' ').toUpperCase()}</th>`).join('') + '</tr>';
+  body.innerHTML = res.preview.slice(0,10).map(row =>
+    '<tr>' + available.map(f => {
+      const v = row[f] || '—';
+      const isNum = ['total_pay','regular_pay','overtime_pay','benefits'].includes(f);
+      const n = parseFloat(v);
+      return `<td style="${isNum?'text-align:right':''}">${isNum && !isNaN(n) ? fmt(n) : v}</td>`;
+    }).join('') + '</tr>'
+  ).join('');
+
+  $('prImportCount').textContent = `${res.total.toLocaleString()} rows will be imported`;
+  $('prMappingWrap').style.display = 'block';
+}
+
+async function confirmPayrollImport() {
+  if (!prUploadData) return;
+  const btn = $('prImportBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Importing…';
+
+  // Build canonical rows from preview + mapping — but we need ALL rows
+  // Re-upload is expensive; instead we send mapping info and let backend re-read
+  // Actually we already have preview rows; for large files we send all via a second pass
+  // Simple approach: re-fetch the file. Instead, send the raw preview rows we have
+  // For large files, stream in batches. Here we use preview (up to 20) for demo,
+  // but the real approach is to send all rows. We already stored them in prUploadData.preview.
+  // The /upload/payroll returns preview (20 rows). We need full import.
+  // Solution: add a hidden file field and re-submit with import flag, OR
+  // have the user re-select the file. Better: store full data in memory.
+  // Let's fix upload/payroll to return ALL rows (capped at 50000).
+
+  const replace = $('prReplaceCheck').checked;
+  const res = await api('POST', '/api/payroll-records/import', {
+    rows: prUploadData.allRows || prUploadData.preview,
+    replace
+  });
+
+  btn.disabled = false;
+  btn.textContent = '✅ Import All Records';
+  closeModal('payrollImportModal');
+
+  if (res.ok || res.added) {
+    switchPayrollTab('analytics');
+    loadPayrollAnalytics();
+  }
+}
+
+// ── Payroll Analytics Charts ──────────────────────────────────────────────
+let _prCharts = {};
+
+function _destroyPrChart(id) { if(_prCharts[id]){_prCharts[id].destroy();delete _prCharts[id];} }
+
+async function loadPayrollAnalytics() {
+  const data = await api('GET', '/api/payroll/analytics');
+  if (!data || data.empty) {
+    $('pr-upload-prompt').style.display = 'flex';
+    $('payroll-analytics-section').style.display = 'none';
+    return;
+  }
+
+  $('pr-upload-prompt').style.display = 'none';
+  $('payroll-analytics-section').style.display = 'block';
+
+  // KPIs
+  $('pr-kpi-records').textContent = data.total_records.toLocaleString();
+  $('pr-kpi-pay').textContent     = fmt(data.total_pay);
+  $('pr-kpi-ot').textContent      = fmt(data.total_overtime);
+  $('pr-kpi-avg').textContent     = fmt(data.avg_pay);
+
+  const ACCENT_COLORS = [
+    '#0C6E5C','#16A34A','#3B82F6','#8B5CF6','#F59E0B',
+    '#EF4444','#06B6D4','#EC4899','#10B981','#F97316'
+  ];
+
+  // Chart 1: Top departments by total pay
+  _destroyPrChart('dept');
+  const deptCtx = $('chartPayDept').getContext('2d');
+  const depts = data.top_departments || [];
+  _prCharts['dept'] = new Chart(deptCtx, {
+    type: 'bar',
+    data: {
+      labels: depts.map(d => d.name.length > 20 ? d.name.slice(0,20)+'…' : d.name),
+      datasets: [{label:'Total Pay', data: depts.map(d=>d.total),
+        backgroundColor: ACCENT_COLORS.slice(0,depts.length), borderRadius:5}]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false, indexAxis:'y',
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>fmt(c.raw)}}},
+      scales:{x:{ticks:{callback:v=>v>=1e6?'$'+(v/1e6).toFixed(1)+'M':v>=1e3?'$'+(v/1e3).toFixed(0)+'K':'$'+v}}}
+    }
+  });
+
+  // Chart 2: Employment type doughnut
+  _destroyPrChart('emp');
+  const empCtx = $('chartEmpType').getContext('2d');
+  const empTypes = data.employment_types || [];
+  _prCharts['emp'] = new Chart(empCtx, {
+    type: 'doughnut',
+    data: {
+      labels: empTypes.map(e=>e.type || 'Unknown'),
+      datasets: [{data: empTypes.map(e=>e.count), backgroundColor: ACCENT_COLORS, borderWidth:2}]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{position:'right', labels:{font:{size:11}}}}
+    }
+  });
+
+  // Chart 3: Pay by year (bar)
+  _destroyPrChart('year');
+  const yearCtx = $('chartPayYear').getContext('2d');
+  const pyears = data.pay_by_year || [];
+  _prCharts['year'] = new Chart(yearCtx, {
+    type: 'bar',
+    data: {
+      labels: pyears.map(y=>y.year),
+      datasets: [{label:'Total Pay', data:pyears.map(y=>y.total),
+        backgroundColor:'rgba(12,110,92,0.75)', borderRadius:5}]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>fmt(c.raw)}}},
+      scales:{y:{ticks:{callback:v=>v>=1e6?'$'+(v/1e6).toFixed(1)+'M':v>=1e3?'$'+(v/1e3).toFixed(0)+'K':'$'+v}}}
+    }
+  });
+
+  // Chart 4: Pay composition (regular / OT / other) — stacked bar or doughnut
+  _destroyPrChart('comp');
+  const compCtx = $('chartPayComp').getContext('2d');
+  _prCharts['comp'] = new Chart(compCtx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Regular Pay','Overtime Pay','Other Pay'],
+      datasets: [{
+        data: [data.total_regular || 0, data.total_ot || 0, data.total_other || 0],
+        backgroundColor: ['#0C6E5C','#F59E0B','#3B82F6'], borderWidth:2
+      }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{position:'right', labels:{font:{size:11}}},
+        tooltip:{callbacks:{label:c=>`${c.label}: ${fmt(c.raw)}`}}}
+    }
+  });
+
+  // Top job titles table
+  const titlesBody = $('pr-titles-body');
+  titlesBody.innerHTML = (data.top_job_titles||[]).map((t,i) =>
+    `<tr><td style="color:var(--muted)">${i+1}</td><td>${t.title}</td><td style="text-align:right;font-weight:600;color:var(--income)">${fmt(t.avg_pay)}</td></tr>`
+  ).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:20px">No job title data available</td></tr>';
+
+  // Status table
+  const statusBody = $('pr-status-body');
+  const totalRecs = data.total_records || 1;
+  statusBody.innerHTML = (data.job_statuses||[]).map(s =>
+    `<tr><td>${s.status||'Unknown'}</td><td style="text-align:right">${s.count.toLocaleString()}</td><td style="text-align:right;color:var(--muted)">${Math.round(s.count/totalRecs*100)}%</td></tr>`
+  ).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:20px">No status data</td></tr>';
+}
+
+async function clearPayrollImport() {
+  if (!confirm('Clear all imported payroll data?')) return;
+  await api('DELETE', '/api/payroll-records');
+  $('pr-upload-prompt').style.display = 'flex';
+  $('payroll-analytics-section').style.display = 'none';
+}
+
+// ── Google Ads ─────────────────────────────────────────────────────────────
+async function loadGoogleAds() {
+  const status = await api('GET', '/admin/google-ads/status');
+  if (status && status.connected) {
+    _showGaConnected(status.email, status.customer_id, false);
+    await loadGoogleAdsCampaigns();
+  } else {
+    $('ga-connect-state').style.display = '';
+    $('ga-connected-state').style.display = 'none';
+  }
+}
+
+function loadGoogleAdsDemoMode() {
+  _showGaConnected('demo@example.com', 'DEMO', true);
+  loadGoogleAdsCampaigns();
+}
+
+function _showGaConnected(email, cid, isDemo) {
+  $('ga-connect-state').style.display = 'none';
+  $('ga-connected-state').style.display = '';
+  const badge = $('ga-status-badge');
+  if (isDemo) {
+    badge.textContent = 'Demo Mode';
+    badge.className = 'badge badge-warning';
+    $('ga-demo-note').style.display = '';
+  } else {
+    badge.textContent = 'Connected';
+    badge.className = 'badge badge-active';
+    $('ga-demo-note').style.display = 'none';
+  }
+  $('ga-status-email').textContent = email || '';
+  $('ga-status-cid').textContent = cid ? 'Customer ID: ' + cid : '';
+}
+
+function connectGoogleAds() {
+  const devToken    = $('ga-dev-token').value.trim();
+  const clientId    = $('ga-client-id').value.trim();
+  const clientSecret= $('ga-client-secret').value.trim();
+  const customerId  = $('ga-customer-id').value.trim();
+
+  if (!clientId || !clientSecret) {
+    _showGaError('Please enter your OAuth Client ID and Client Secret first.');
+    return;
+  }
+  if (!devToken) {
+    _showGaError('Please enter your Developer Token.');
+    return;
+  }
+
+  // Redirect to OAuth flow — Google will send them back to /oauth/google-ads/callback
+  const params = new URLSearchParams({
+    client_id:       clientId,
+    client_secret:   clientSecret,
+    developer_token: devToken,
+    customer_id:     customerId,
+  });
+  window.location.href = `/oauth/google-ads/start?${params.toString()}`;
+}
+
+function _showGaError(msg) {
+  let el = $('ga-connect-error');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'ga-connect-error';
+    el.style.cssText = 'color:var(--expense);font-size:13px;background:var(--expense-bg);border:1px solid rgba(248,81,73,.3);border-radius:7px;padding:10px 14px;margin-top:10px';
+    $('ga-connect-state').querySelector('button.btn-accent').after(el);
+  }
+  el.textContent = '❌ ' + msg;
+  el.style.display = 'block';
+}
+
+async function _checkGaCallbackResult() {
+  const params = new URLSearchParams(window.location.search);
+  const hash   = window.location.hash;
+  if (params.get('ga_connected') === '1' && hash === '#googleads') {
+    // Clean URL
+    history.replaceState({}, '', '/');
+    navigate('googleads');
+  } else if (params.get('ga_error') && hash === '#googleads') {
+    history.replaceState({}, '', '/');
+    navigate('googleads');
+    setTimeout(() => _showGaError('OAuth failed: ' + params.get('ga_error')), 500);
+  }
+}
+
+async function disconnectGoogleAds() {
+  if (!confirm('Disconnect your Google Ads account?')) return;
+  await api('DELETE', '/api/google-ads/disconnect');
+  $('ga-connect-state').style.display = '';
+  $('ga-connected-state').style.display = 'none';
+  $('ga-suggestions-wrap').style.display = 'none';
+}
+
+async function loadGoogleAdsCampaigns() {
+  const data = await api('GET', '/api/google-ads/campaigns');
+  if (!data) return;
+
+  const camps = data.campaigns || [];
+  const saved = data.saved || [];
+
+  // KPIs
+  const totalSpend = camps.reduce((s, c) => s + (c.cost || 0), 0);
+  const totalClicks = camps.reduce((s, c) => s + (c.clicks || 0), 0);
+  const totalConv = camps.reduce((s, c) => s + (c.conversions || 0), 0);
+  const avgCpc = totalClicks ? totalSpend / totalClicks : 0;
+  $('ga-kpi-spend').textContent  = fmt(totalSpend);
+  $('ga-kpi-clicks').textContent = totalClicks.toLocaleString();
+  $('ga-kpi-conv').textContent   = Math.round(totalConv).toLocaleString();
+  $('ga-kpi-cpc').textContent    = fmt(avgCpc);
+
+  // Live campaigns table
+  $('ga-live-count').textContent = camps.length + ' campaign' + (camps.length !== 1 ? 's' : '');
+  $('ga-campaigns-body').innerHTML = camps.length ? camps.map(c => {
+    const statusClass = c.status === 'ENABLED' ? 'badge-active' : c.status === 'PAUSED' ? 'badge-warning' : 'badge-draft';
+    return `<tr>
+      <td style="font-weight:500">${c.name || '—'}</td>
+      <td><span class="badge ${statusClass}">${c.status || 'UNKNOWN'}</span></td>
+      <td style="text-align:right">${fmt(c.budget_daily)}</td>
+      <td style="text-align:right">${(c.impressions||0).toLocaleString()}</td>
+      <td style="text-align:right">${(c.clicks||0).toLocaleString()}</td>
+      <td style="text-align:right;color:var(--income)">${(c.conversions||0).toLocaleString()}</td>
+      <td style="text-align:right;color:var(--expense)">${fmt(c.cost)}</td>
+      <td style="text-align:right">${(c.ctr||0).toFixed(2)}%</td>
+      <td style="text-align:right">${fmt(c.cpc)}</td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:24px">No live campaigns found</td></tr>';
+
+  if (data.demo) $('ga-demo-note').style.display = '';
+
+  // Saved campaigns table
+  $('ga-saved-body').innerHTML = saved.length ? saved.map(c => {
+    const statusClass = c.status === 'ENABLED' ? 'badge-active' : c.status === 'PAUSED' ? 'badge-warning' : 'badge-draft';
+    return `<tr>
+      <td style="font-weight:500">${c.name || '—'}</td>
+      <td style="color:var(--muted)">${c.objective || '—'}</td>
+      <td><span class="badge ${statusClass}">${c.status || 'DRAFT'}</span></td>
+      <td style="text-align:right">${fmt(c.budget_daily)}</td>
+      <td>${c.start_date || '—'}</td>
+      <td>${c.end_date || '—'}</td>
+      <td><button onclick="delGoogleAdsCampaign(${c.id})" style="background:none;border:none;color:var(--expense);cursor:pointer;font-size:17px">×</button></td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">No saved campaigns yet — click New Campaign or use AI Suggest.</td></tr>';
+}
+
+function openNewCampaign(prefill) {
+  const p = prefill || {};
+  $('ga-cam-name').value    = p.name || '';
+  $('ga-cam-obj').value     = p.objective || 'Sales';
+  $('ga-cam-budget').value  = p.budget_daily || '';
+  $('ga-cam-demo').value    = p.demographic || '';
+  $('ga-cam-start').value   = p.start_date || (new Date().toISOString().split('T')[0]);
+  $('ga-cam-end').value     = p.end_date || '';
+  $('ga-cam-h1').value      = p.headline1 || '';
+  $('ga-cam-h2').value      = p.headline2 || '';
+  $('ga-cam-h3').value      = p.headline3 || '';
+  $('ga-cam-d1').value      = p.description1 || '';
+  $('ga-cam-d2').value      = p.description2 || '';
+  $('ga-cam-url').value     = p.final_url || '';
+  ['h1','h2','h3'].forEach(k => $(`ga-${k}-cnt`).textContent = ($(`ga-cam-${k}`).value.length) + '/30');
+  ['d1','d2'].forEach(k => $(`ga-${k}-cnt`).textContent = ($(`ga-cam-${k}`).value.length) + '/90');
+  $('gaCampaignModal').classList.add('open');
+}
+
+async function createGoogleAdsCampaign() {
+  const body = {
+    name:         $('ga-cam-name').value.trim(),
+    objective:    $('ga-cam-obj').value,
+    budget_daily: parseFloat($('ga-cam-budget').value) || 0,
+    demographic:  $('ga-cam-demo').value.trim(),
+    start_date:   $('ga-cam-start').value,
+    end_date:     $('ga-cam-end').value,
+    status:       'DRAFT',
+    headline1:    $('ga-cam-h1').value.trim(),
+    headline2:    $('ga-cam-h2').value.trim(),
+    headline3:    $('ga-cam-h3').value.trim(),
+    description1: $('ga-cam-d1').value.trim(),
+    description2: $('ga-cam-d2').value.trim(),
+    final_url:    $('ga-cam-url').value.trim(),
+  };
+  if (!body.name) { alert('Campaign name is required.'); return; }
+  await api('POST', '/api/google-ads/campaigns', body);
+  closeModal('gaCampaignModal');
+  await loadGoogleAdsCampaigns();
+}
+
+async function delGoogleAdsCampaign(id) {
+  await api('DELETE', `/api/google-ads/campaigns/${id}`);
+  await loadGoogleAdsCampaigns();
+}
+
+async function suggestGoogleAdsCampaigns() {
+  const btn = document.querySelector('[onclick="suggestGoogleAdsCampaigns()"]');
+  const origText = btn.textContent;
+  btn.textContent = 'Analyzing…';
+  btn.disabled = true;
+  const res = await api('GET', '/api/google-ads/suggest');
+  btn.textContent = origText;
+  btn.disabled = false;
+  if (!res || !res.success || !res.suggestions || !res.suggestions.length) {
+    alert('Could not generate suggestions. Make sure you have transactions in your Ledger.');
+    return;
+  }
+  const wrap = $('ga-suggestions-wrap');
+  const list = $('ga-suggestions-list');
+  list.innerHTML = res.suggestions.map(s => `
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px">
+      <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px">${s.name || 'Campaign'}</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">${s.rationale || ''}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
+        <span style="background:var(--accent-light);color:var(--accent);font-size:11px;font-weight:600;padding:2px 8px;border-radius:8px">${s.objective || ''}</span>
+        <span style="background:var(--surface);border:1px solid var(--border);font-size:11px;padding:2px 8px;border-radius:8px;color:var(--muted)">${s.demographic || ''}</span>
+        <span style="background:var(--surface);border:1px solid var(--border);font-size:11px;padding:2px 8px;border-radius:8px;color:var(--income)">${fmt(s.budget_daily)}/day</span>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px">
+        <strong>Headlines:</strong> ${[s.headline1,s.headline2,s.headline3].filter(Boolean).join(' | ')}<br>
+        <strong>Descriptions:</strong> ${[s.description1,s.description2].filter(Boolean).join(' | ')}
+      </div>
+      <button class="btn btn-sm btn-accent" onclick="openNewCampaign(${JSON.stringify(s).replace(/"/g,'&quot;')})">Use This</button>
+    </div>
+  `).join('');
+  wrap.style.display = '';
 }
 
 // ── AI Chat ────────────────────────────────────────────────────────────────
@@ -1090,7 +2507,6 @@ function updateChips() {
   const chips = MODULE_CHIPS[currentModule] || [];
   $('aiChips').innerHTML = chips.map(c=>`<span class="chip" onclick="sendChat('${c}')">${c}</span>`).join('');
 }
-
 function addAIMessage(role, text) {
   const div = document.createElement('div');
   div.className = 'msg ' + role;
@@ -1099,7 +2515,6 @@ function addAIMessage(role, text) {
   $('aiMessages').scrollTop = 9999;
   return div;
 }
-
 async function sendChat(overrideMsg) {
   const input = $('aiInput');
   const msg = overrideMsg || input.value.trim();
@@ -1111,51 +2526,104 @@ async function sendChat(overrideMsg) {
     const res = await api('POST', '/chat', {message:msg, module:currentModule, history:chatHistory.slice(-12)});
     typing.remove();
     addAIMessage('assistant', res.reply || res.error || 'Sorry, something went wrong.');
-    if (res.reply) {
-      chatHistory.push({role:'user', content:msg});
-      chatHistory.push({role:'assistant', content:res.reply});
-    }
-  } catch(e) {
-    typing.remove();
-    addAIMessage('assistant', 'Error: ' + e.message);
-  }
+    if (res.reply) { chatHistory.push({role:'user',content:msg}); chatHistory.push({role:'assistant',content:res.reply}); }
+  } catch(e) { typing.remove(); addAIMessage('assistant', 'Error: ' + e.message); }
 }
 
 // ── Modals ─────────────────────────────────────────────────────────────────
 function closeModal(id) { $(id).classList.remove('open'); }
 document.querySelectorAll('.modal-bg').forEach(m => m.addEventListener('click', e => { if(e.target===m) m.classList.remove('open'); }));
 
-function openClearData() {
-  $('clearConfirmInput').value = '';
-  $('clearBtn').disabled = true;
-  $('clearModal').classList.add('open');
+function openClearData() { $('clearConfirmInput').value=''; $('clearBtn').disabled=true; $('clearModal').classList.add('open'); }
+async function confirmClearData() {
+  if($('clearConfirmInput').value!=='CLEAR') return;
+  $('clearBtn').textContent='Clearing…'; $('clearBtn').disabled=true;
+  await api('DELETE','/api/data/all');
+  closeModal('clearModal');
+  if(grids.ledger) grids.ledger.setRowData([]);
+  if(grids.expenses) grids.expenses.setRowData([]);
+  if(grids.employees) grids.employees.setRowData([]);
+  if(grids.marketing) grids.marketing.setRowData([]);
+  await loadDashboard();
+  if(currentModule!=='dashboard') await navigate(currentModule);
+  $('clearBtn').textContent='🗑 Delete Everything';
 }
 
-async function confirmClearData() {
-  if ($('clearConfirmInput').value !== 'CLEAR') return;
-  $('clearBtn').textContent = 'Clearing…';
-  $('clearBtn').disabled = true;
-  await api('DELETE', '/api/data/all');
-  closeModal('clearModal');
-  // Reload whichever module is active + dashboard
-  if (grids.ledger)    { grids.ledger.setRowData([]); }
-  if (grids.expenses)  { grids.expenses.setRowData([]); }
-  if (grids.employees) { grids.employees.setRowData([]); }
-  if (grids.marketing) { grids.marketing.setRowData([]); }
-  await loadDashboard();
-  if (currentModule !== 'dashboard') await navigate(currentModule);
-  $('clearBtn').textContent = '🗑 Delete Everything';
+// ── Password Change ───────────────────────────────────────────────────────
+function openPasswordModal() {
+  ['pwCurrent','pwNew','pwConfirm'].forEach(id => $(id).value = '');
+  $('pwModalErr').style.display = 'none';
+  $('pwModal').classList.add('open');
 }
+async function changePassword() {
+  const current = $('pwCurrent').value;
+  const newPw   = $('pwNew').value;
+  const confirm = $('pwConfirm').value;
+  const errEl   = $('pwModalErr');
+  errEl.style.display = 'none';
+  if (!current || !newPw || !confirm) { errEl.textContent='All fields are required.'; errEl.style.display='block'; return; }
+  if (newPw !== confirm) { errEl.textContent='New passwords do not match.'; errEl.style.display='block'; return; }
+  if (newPw.length < 8) { errEl.textContent='New password must be at least 8 characters.'; errEl.style.display='block'; return; }
+  const r = await fetch('/api/me/password', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({current_password: current, new_password: newPw})});
+  const d = await r.json();
+  if (r.ok) {
+    closeModal('pwModal');
+    _showDeleteToast('Password updated successfully!');
+  } else {
+    errEl.textContent = d.error || 'Failed to update password.';
+    errEl.style.display = 'block';
+  }
+}
+
+// ── User menu toggle ──────────────────────────────────────────────────────
+function toggleUserMenu() {
+  $('userMenu').classList.toggle('open');
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('#topbar-user')) $('userMenu').classList.remove('open');
+});
 
 // ── Init ───────────────────────────────────────────────────────────────────
 (async () => {
-  const me = await fetch('/api/me').then(r => r.json()).catch(() => null);
+  const me = await fetch('/api/me').then(r=>r.json()).catch(()=>null);
   if (!me || me.error) { window.location.href = '/login'; return; }
-  $('topbar-user').textContent = '👤 ' + (me.name || me.email);
-  if (me.is_admin) $('adminLink').style.display = 'inline';
+  const initials = (me.name||me.email||'?').charAt(0).toUpperCase();
+  $('user-avatar').textContent = initials;
+  $('user-name').textContent   = me.name || me.email;
+  if (me.is_admin) $('adminLink').style.display = 'flex';
   updateChips();
   loadDashboard();
+  // Handle Google Ads OAuth callback redirect
+  _checkGaCallbackResult();
 })();
 </script>
+
+<!-- Password Change Modal -->
+<div class="modal-bg" id="pwModal">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header">
+      <span class="modal-title">🔑 Change Password</span>
+      <button class="modal-close" onclick="closeModal('pwModal')">✕</button>
+    </div>
+    <div id="pwModalErr" style="display:none;background:rgba(248,81,73,.1);border:1px solid rgba(248,81,73,.35);color:var(--expense);font-size:13px;padding:10px 12px;border-radius:6px;margin-bottom:14px"></div>
+    <div class="form-group">
+      <label class="form-label">Current Password</label>
+      <input type="password" class="form-input" id="pwCurrent" placeholder="Enter current password" onkeydown="if(event.key==='Enter')changePassword()">
+    </div>
+    <div class="form-group">
+      <label class="form-label">New Password</label>
+      <input type="password" class="form-input" id="pwNew" placeholder="At least 8 characters" onkeydown="if(event.key==='Enter')changePassword()">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Confirm New Password</label>
+      <input type="password" class="form-input" id="pwConfirm" placeholder="Repeat new password" onkeydown="if(event.key==='Enter')changePassword()">
+    </div>
+    <div style="display:flex;gap:10px;margin-top:6px">
+      <button class="btn btn-ghost" onclick="closeModal('pwModal')" style="flex:1">Cancel</button>
+      <button class="btn btn-primary" onclick="changePassword()" style="flex:1">Update Password</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
