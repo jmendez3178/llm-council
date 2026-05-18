@@ -1,643 +1,1196 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BooksAI — Smart Bookkeeping Assistant</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BooksAI — Smart Bookkeeping</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.4/styles/ag-grid.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.4/styles/ag-theme-alpine-dark.min.css">
+<script src="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.4/dist/ag-grid-community.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d1117;--surface:#161b22;--surface2:#1c2128;
+  --border:#30363d;--text:#e6edf3;--muted:#7d8590;
+  --accent:#10b981;--income:#3fb950;--expense:#f85149;
+  --warning:#d29922;--info:#388bfd;
+  --sidebar:56px;--ai:320px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;display:flex}
 
-    :root {
-      --bg:       #0d1117;
-      --surface:  #161b27;
-      --card:     #1c2333;
-      --border:   #30363d;
-      --accent:   #2ecc71;
-      --accent2:  #27ae60;
-      --red:      #e74c3c;
-      --blue:     #3498db;
-      --text:     #e6edf3;
-      --muted:    #8b949e;
-      --radius:   12px;
-    }
+/* ── Sidebar ── */
+.sidebar{width:var(--sidebar);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:4px;flex-shrink:0;z-index:10}
+.logo{width:36px;height:36px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;font-weight:700;font-size:14px;color:#000;flex-shrink:0}
+.nav-item{width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;color:var(--muted);transition:all .15s;border:none;background:none}
+.nav-item:hover{background:var(--surface2);color:var(--text)}
+.nav-item.active{background:rgba(16,185,129,.15);color:var(--accent);box-shadow:inset 2px 0 0 var(--accent)}
+.nav-item svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.nav-tooltip{position:absolute;left:52px;background:#1f2937;color:var(--text);font-size:12px;padding:4px 8px;border-radius:4px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s;z-index:100;border:1px solid var(--border)}
+.nav-item:hover .nav-tooltip{opacity:1}
+.sidebar-spacer{flex:1}
 
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
+/* ── Main ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.topbar{height:52px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px;flex-shrink:0}
+.topbar-title{font-size:15px;font-weight:600;color:var(--text)}
+.topbar-sub{font-size:12px;color:var(--muted)}
+.topbar-spacer{flex:1}
+.badge-beta{background:rgba(16,185,129,.15);color:var(--accent);font-size:10px;font-weight:600;padding:2px 6px;border-radius:10px;border:1px solid rgba(16,185,129,.3)}
+.content{flex:1;overflow-y:auto;padding:20px}
 
-    /* ── Header ── */
-    header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 28px;
-      height: 56px;
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      flex-shrink: 0;
-    }
-    .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; }
-    .logo-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
-    .badge { background: var(--accent); color: #000; font-size: 11px; font-weight: 700;
-             padding: 2px 8px; border-radius: 20px; }
+/* ── Modules ── */
+.module{display:none}
+.module.active{display:block}
 
-    /* ── Layout ── */
-    .layout {
-      display: grid;
-      grid-template-columns: 1fr 360px;
-      flex: 1;
-      overflow: hidden;
-    }
+/* ── Cards ── */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px}
+.kpi-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.kpi-val{font-size:22px;font-weight:700}
+.kpi-val.income{color:var(--income)}
+.kpi-val.expense{color:var(--expense)}
+.kpi-val.net-pos{color:var(--income)}
+.kpi-val.net-neg{color:var(--expense)}
+.kpi-val.warn{color:var(--warning)}
+.kpi-sub{font-size:11px;color:var(--muted);margin-top:4px}
 
-    /* ── Left panel ── */
-    .left {
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      border-right: 1px solid var(--border);
-    }
+/* ── Charts ── */
+.charts-row{display:grid;grid-template-columns:3fr 2fr;gap:12px;margin-bottom:20px}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px}
+.chart-title{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px}
+.chart-wrap{position:relative;height:200px}
 
-    /* ── Upload zone ── */
-    .upload-zone {
-      margin: 20px;
-      border: 2px dashed var(--border);
-      border-radius: var(--radius);
-      padding: 28px 20px;
-      text-align: center;
-      cursor: pointer;
-      transition: border-color .2s, background .2s;
-      flex-shrink: 0;
-    }
-    .upload-zone:hover, .upload-zone.drag { border-color: var(--accent); background: rgba(46,204,113,.05); }
-    .upload-zone.has-file { border-style: solid; border-color: var(--accent); background: rgba(46,204,113,.07); }
-    .upload-icon { font-size: 28px; margin-bottom: 8px; }
-    .upload-label { font-size: 15px; font-weight: 600; }
-    .upload-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
-    #fileInput { display: none; }
+/* ── Toolbar ── */
+.toolbar{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.btn{padding:6px 12px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text);transition:all .15s;display:inline-flex;align-items:center;gap:5px}
+.btn:hover{background:var(--surface2);border-color:var(--muted)}
+.btn-accent{background:var(--accent);border-color:var(--accent);color:#000;font-weight:600}
+.btn-accent:hover{opacity:.9}
+.btn-sm{padding:4px 8px;font-size:11px}
+.btn-danger{color:var(--expense);border-color:rgba(248,81,73,.3)}
+.btn-danger:hover{background:rgba(248,81,73,.1)}
+.spacer{flex:1}
 
-    /* ── Summary cards ── */
-    .summary {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-      padding: 0 20px 16px;
-      flex-shrink: 0;
-    }
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 14px 16px;
-    }
-    .card-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
-    .card-value { font-size: 22px; font-weight: 700; margin-top: 4px; }
-    .card-value.income  { color: var(--accent); }
-    .card-value.expense { color: var(--red); }
-    .card-value.net.pos { color: var(--accent); }
-    .card-value.net.neg { color: var(--red); }
+/* ── AG Grid wrapper ── */
+.grid-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.grid-wrap .ag-theme-alpine-dark{--ag-background-color:#161b22;--ag-header-background-color:#1c2128;--ag-odd-row-background-color:#1a2029;--ag-border-color:#30363d;--ag-row-hover-color:#1f2d3d;--ag-selected-row-background-color:rgba(16,185,129,.1);--ag-font-size:13px}
 
-    /* ── Toolbar ── */
-    .toolbar {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 0 20px 12px;
-      flex-shrink: 0;
-    }
-    .btn {
-      padding: 7px 16px;
-      border-radius: 8px;
-      border: none;
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 600;
-      transition: opacity .15s;
-    }
-    .btn:hover { opacity: .85; }
-    .btn:disabled { opacity: .4; cursor: not-allowed; }
-    .btn-primary { background: var(--accent); color: #000; }
-    .btn-ghost   { background: var(--card); color: var(--text); border: 1px solid var(--border); }
-    .btn-sm      { padding: 5px 12px; font-size: 12px; }
+/* ── Table ── */
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{padding:8px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);white-space:nowrap}
+.tbl td{padding:8px 12px;border-bottom:1px solid rgba(48,54,61,.5);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:rgba(255,255,255,.02)}
+.tbl-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden}
 
-    /* ── Table ── */
-    .table-wrap {
-      flex: 1;
-      overflow-y: auto;
-      padding: 0 20px 20px;
-    }
-    table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    th {
-      text-align: left;
-      padding: 8px 12px;
-      background: var(--surface);
-      color: var(--muted);
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: .05em;
-      position: sticky;
-      top: 0;
-      z-index: 1;
-    }
-    td { padding: 9px 12px; border-bottom: 1px solid var(--border); }
-    tr:hover td { background: rgba(255,255,255,.03); }
-    .amt-income  { color: var(--accent); font-weight: 600; }
-    .amt-expense { color: var(--red);    font-weight: 600; }
-    .cat-badge {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 20px;
-      font-size: 11px;
-      font-weight: 600;
-      background: rgba(52,152,219,.18);
-      color: var(--blue);
-    }
-    .cat-badge.income { background: rgba(46,204,113,.15); color: var(--accent); }
-    .cat-badge.expense { background: rgba(231,76,60,.12); color: var(--red); }
+/* ── Badges ── */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500}
+.badge-income{background:rgba(63,185,80,.15);color:var(--income);border:1px solid rgba(63,185,80,.3)}
+.badge-expense{background:rgba(248,81,73,.15);color:var(--expense);border:1px solid rgba(248,81,73,.3)}
+.badge-draft{background:rgba(125,133,144,.15);color:var(--muted);border:1px solid rgba(125,133,144,.3)}
+.badge-sent{background:rgba(56,139,253,.15);color:var(--info);border:1px solid rgba(56,139,253,.3)}
+.badge-paid{background:rgba(63,185,80,.15);color:var(--income);border:1px solid rgba(63,185,80,.3)}
+.badge-overdue{background:rgba(248,81,73,.15);color:var(--expense);border:1px solid rgba(248,81,73,.3)}
+.badge-pending{background:rgba(210,153,34,.15);color:var(--warning);border:1px solid rgba(210,153,34,.3)}
+.badge-approved{background:rgba(63,185,80,.15);color:var(--income);border:1px solid rgba(63,185,80,.3)}
+.badge-active{background:rgba(16,185,129,.15);color:var(--accent);border:1px solid rgba(16,185,129,.3)}
 
-    /* ── Empty / Loading states ── */
-    .empty {
-      text-align: center;
-      padding: 48px 20px;
-      color: var(--muted);
-    }
-    .empty-icon { font-size: 36px; margin-bottom: 12px; }
-    .spinner {
-      display: inline-block;
-      width: 16px; height: 16px;
-      border: 2px solid var(--border);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin .7s linear infinite;
-      vertical-align: middle;
-      margin-right: 6px;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
+/* ── Forms ── */
+.form-row{display:grid;gap:10px;margin-bottom:10px}
+.form-row.cols-2{grid-template-columns:1fr 1fr}
+.form-row.cols-3{grid-template-columns:1fr 1fr 1fr}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-group label{font-size:11px;color:var(--muted);font-weight:500}
+input,select,textarea{background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:7px 10px;font-size:13px;width:100%;outline:none;font-family:inherit}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+select option{background:var(--surface2)}
+textarea{resize:vertical;min-height:60px}
 
-    /* ── Chat panel ── */
-    .chat {
-      display: flex;
-      flex-direction: column;
-      background: var(--surface);
-      overflow: hidden;
-    }
-    .chat-header {
-      padding: 16px 20px;
-      border-bottom: 1px solid var(--border);
-      font-weight: 700;
-      font-size: 15px;
-      flex-shrink: 0;
-    }
-    .chat-messages {
-      flex: 1;
-      overflow-y: auto;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    .msg { max-width: 88%; padding: 10px 14px; border-radius: 12px; font-size: 13.5px; line-height: 1.5; }
-    .msg.user {
-      align-self: flex-end;
-      background: var(--accent);
-      color: #000;
-      border-bottom-right-radius: 4px;
-    }
-    .msg.assistant {
-      align-self: flex-start;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-bottom-left-radius: 4px;
-      white-space: pre-wrap;
-    }
-    .msg.typing { color: var(--muted); font-style: italic; }
-    .chat-input-row {
-      display: flex;
-      gap: 8px;
-      padding: 14px;
-      border-top: 1px solid var(--border);
-      flex-shrink: 0;
-    }
-    .chat-input {
-      flex: 1;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text);
-      padding: 9px 12px;
-      font-size: 13px;
-      outline: none;
-      resize: none;
-      height: 40px;
-      font-family: inherit;
-    }
-    .chat-input:focus { border-color: var(--accent); }
-    .send-btn {
-      background: var(--accent);
-      border: none;
-      border-radius: 8px;
-      width: 40px;
-      cursor: pointer;
-      font-size: 18px;
-      transition: opacity .15s;
-      flex-shrink: 0;
-    }
-    .send-btn:hover { opacity: .85; }
-    .send-btn:disabled { opacity: .4; cursor: not-allowed; }
+/* ── Sections ── */
+.section-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px}
+.section-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.section-title span{font-size:11px;color:var(--muted);font-weight:400}
 
-    /* ── Suggestions ── */
-    .suggestions {
-      padding: 0 16px 12px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-    .suggestion {
-      padding: 5px 12px;
-      border-radius: 20px;
-      border: 1px solid var(--border);
-      background: var(--card);
-      color: var(--muted);
-      font-size: 12px;
-      cursor: pointer;
-      transition: border-color .15s, color .15s;
-    }
-    .suggestion:hover { border-color: var(--accent); color: var(--accent); }
+/* ── P&L Table ── */
+.pl-table{width:100%;border-collapse:collapse;font-size:12px}
+.pl-table th{padding:6px 10px;text-align:right;font-size:11px;color:var(--muted);font-weight:500;border-bottom:1px solid var(--border);white-space:nowrap}
+.pl-table th:first-child{text-align:left;min-width:180px}
+.pl-table td{padding:6px 10px;text-align:right;border-bottom:1px solid rgba(48,54,61,.4);white-space:nowrap}
+.pl-table td:first-child{text-align:left;color:var(--text);padding-left:20px}
+.pl-section-header td{background:var(--surface2);color:var(--muted);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;padding:8px 10px!important;padding-left:10px!important}
+.pl-total td{font-weight:700;border-top:2px solid var(--border);border-bottom:2px solid var(--border)}
+.pl-total td:first-child{padding-left:10px}
+.pl-net td{font-size:14px;font-weight:700;border-top:2px solid var(--border);padding-top:10px}
+.pl-net td:first-child{padding-left:10px}
+.pl-controls{display:flex;gap:10px;align-items:center;margin-bottom:16px}
 
-    /* ── Scrollbar ── */
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-  </style>
+/* ── Invoice layout ── */
+.inv-layout{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+.inv-list-item{padding:12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:border-color .15s;margin-bottom:8px}
+.inv-list-item:hover{border-color:var(--accent)}
+.inv-list-item.selected{border-color:var(--accent);background:rgba(16,185,129,.05)}
+.inv-number{font-weight:600;font-size:13px}
+.inv-client{font-size:12px;color:var(--muted)}
+.inv-amount{font-size:14px;font-weight:700;color:var(--income)}
+.inv-meta{display:flex;align-items:center;gap:8px;margin-top:4px}
+.line-items-table{width:100%;border-collapse:collapse;font-size:12px;margin:8px 0}
+.line-items-table th{padding:6px 8px;background:var(--surface2);font-size:11px;color:var(--muted);font-weight:500;text-align:left;border-bottom:1px solid var(--border)}
+.line-items-table td{padding:6px 4px;border-bottom:1px solid rgba(48,54,61,.4)}
+.line-items-table input{padding:4px 6px;font-size:12px}
+.inv-totals{background:var(--surface2);border-radius:6px;padding:10px 12px;margin-top:8px;font-size:13px}
+.inv-totals-row{display:flex;justify-content:space-between;padding:3px 0}
+.inv-totals-row.total{font-weight:700;font-size:15px;border-top:1px solid var(--border);margin-top:6px;padding-top:6px;color:var(--accent)}
+
+/* ── Payroll layout ── */
+.payroll-layout{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+
+/* ── Marketing KPIs ── */
+.mkt-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px}
+.mkt-kpi{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center}
+.mkt-kpi-val{font-size:18px;font-weight:700;margin-bottom:2px}
+.mkt-kpi-label{font-size:11px;color:var(--muted)}
+
+/* ── AI Panel ── */
+.ai-panel{width:var(--ai);background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+.ai-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.ai-dot{width:8px;height:8px;background:var(--accent);border-radius:50%}
+.ai-title{font-size:13px;font-weight:600}
+.ai-module-badge{font-size:10px;color:var(--muted);background:var(--surface2);padding:2px 6px;border-radius:10px;margin-left:auto}
+.ai-messages{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px}
+.msg{padding:8px 10px;border-radius:8px;font-size:12px;line-height:1.6;max-width:100%}
+.msg.user{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);align-self:flex-end;color:var(--text)}
+.msg.assistant{background:var(--surface2);border:1px solid var(--border);color:var(--text)}
+.msg strong{color:var(--accent)}
+.ai-chips{padding:8px 12px;display:flex;flex-wrap:wrap;gap:6px;border-top:1px solid var(--border)}
+.chip{padding:4px 8px;border-radius:12px;font-size:11px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap}
+.chip:hover{border-color:var(--accent);color:var(--accent)}
+.ai-input-row{padding:10px 12px;border-top:1px solid var(--border);display:flex;gap:6px}
+.ai-input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:7px 10px;font-size:12px;outline:none;resize:none;font-family:inherit;height:36px}
+.ai-input:focus{border-color:var(--accent)}
+.ai-send{width:34px;height:34px;background:var(--accent);border:none;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ai-send svg{width:14px;height:14px;fill:#000;stroke:none}
+
+/* ── Modals ── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal-bg.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;width:90%;max-width:640px;max-height:85vh;overflow-y:auto}
+.modal-wide{max-width:860px}
+.modal-header{display:flex;align-items:center;margin-bottom:16px}
+.modal-title{font-size:15px;font-weight:600}
+.modal-close{margin-left:auto;background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;line-height:1}
+.modal-close:hover{color:var(--text)}
+
+/* ── Empty state ── */
+.empty{text-align:center;padding:40px;color:var(--muted)}
+.empty-icon{font-size:32px;margin-bottom:8px}
+.empty p{font-size:13px}
+
+/* ── Quick-add bar ── */
+.quick-add{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px;display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
+.quick-add .form-group{flex:1;min-width:100px}
+.quick-add .form-group label{font-size:10px}
+
+/* ── Amt colors ── */
+.amt-inc{color:var(--income)}
+.amt-exp{color:var(--expense)}
+
+/* Spinner */
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.2);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle}
+</style>
 </head>
 <body>
 
-<!-- ── Header ── -->
-<header>
-  <div class="logo">
-    <div class="logo-dot"></div>
-    BooksAI
-    <span class="badge">BETA</span>
+<!-- ── Sidebar ── -->
+<nav class="sidebar">
+  <div class="logo">B</div>
+  <button class="nav-item active" onclick="navigate('dashboard')" id="nav-dashboard">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    <span class="nav-tooltip">Dashboard</span>
+  </button>
+  <button class="nav-item" onclick="navigate('ledger')" id="nav-ledger">
+    <svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/><path d="M8 3v18"/></svg>
+    <span class="nav-tooltip">Ledger</span>
+  </button>
+  <button class="nav-item" onclick="navigate('pl')" id="nav-pl">
+    <svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+    <span class="nav-tooltip">P&amp;L Statement</span>
+  </button>
+  <button class="nav-item" onclick="navigate('invoices')" id="nav-invoices">
+    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+    <span class="nav-tooltip">Invoices</span>
+  </button>
+  <button class="nav-item" onclick="navigate('expenses')" id="nav-expenses">
+    <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+    <span class="nav-tooltip">Expenses</span>
+  </button>
+  <button class="nav-item" onclick="navigate('payroll')" id="nav-payroll">
+    <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    <span class="nav-tooltip">Payroll</span>
+  </button>
+  <button class="nav-item" onclick="navigate('marketing')" id="nav-marketing">
+    <svg viewBox="0 0 24 24"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>
+    <span class="nav-tooltip">Marketing</span>
+  </button>
+</nav>
+
+<!-- ── Main ── -->
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title" id="topbar-title">Dashboard</div>
+      <div class="topbar-sub" id="topbar-sub">Overview of your business finances</div>
+    </div>
+    <div class="topbar-spacer"></div>
+    <span class="badge-beta">BETA</span>
+    <span style="font-size:12px;color:var(--muted)">BooksAI · Powered by Claude AI</span>
   </div>
-  <span style="font-size:12px;color:var(--muted)">Powered by Claude AI &nbsp;·&nbsp; DataForSmallBiz</span>
-</header>
 
-<!-- ── Main Layout ── -->
-<div class="layout">
+  <div class="content">
 
-  <!-- ── Left: Data Panel ── -->
-  <div class="left">
-
-    <!-- Upload -->
-    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
-      <div class="upload-icon">📂</div>
-      <div class="upload-label" id="uploadLabel">Drop your file here — clean or messy</div>
-      <div class="upload-sub">CSV or Excel · Any format · AI cleans it automatically</div>
-      <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" />
-    </div>
-
-    <!-- Clean Report Banner -->
-    <div id="cleanReport" style="display:none;margin:0 20px 4px;padding:10px 14px;background:rgba(46,204,113,.1);border:1px solid rgba(46,204,113,.3);border-radius:10px;font-size:12px;color:#2ecc71;line-height:1.6"></div>
-
-    <!-- Summary Cards -->
-    <div class="summary" id="summary" style="display:none">
-      <div class="card">
-        <div class="card-label">Total Income</div>
-        <div class="card-value income" id="cardIncome">$0.00</div>
+    <!-- Dashboard -->
+    <div class="module active" id="mod-dashboard">
+      <div class="kpi-row">
+        <div class="kpi-card"><div class="kpi-label">Total Income</div><div class="kpi-val income" id="kpi-income">—</div><div class="kpi-sub">All time</div></div>
+        <div class="kpi-card"><div class="kpi-label">Total Expenses</div><div class="kpi-val expense" id="kpi-expenses">—</div><div class="kpi-sub">All time</div></div>
+        <div class="kpi-card"><div class="kpi-label">Net P&amp;L</div><div class="kpi-val" id="kpi-net">—</div><div class="kpi-sub" id="kpi-net-sub"></div></div>
+        <div class="kpi-card"><div class="kpi-label">Outstanding Invoices</div><div class="kpi-val warn" id="kpi-inv">—</div><div class="kpi-sub" id="kpi-inv-sub"></div></div>
       </div>
-      <div class="card">
-        <div class="card-label">Total Expenses</div>
-        <div class="card-value expense" id="cardExpenses">$0.00</div>
+      <div class="charts-row">
+        <div class="chart-card"><div class="chart-title">Monthly P&amp;L — Last 6 Months</div><div class="chart-wrap"><canvas id="chartPL"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title">Expense Breakdown</div><div class="chart-wrap"><canvas id="chartExp"></canvas></div></div>
       </div>
-      <div class="card">
-        <div class="card-label">Net P&amp;L</div>
-        <div class="card-value net" id="cardNet">$0.00</div>
+      <div class="tbl-wrap">
+        <div style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600">Recent Transactions</div>
+        <table class="tbl" id="dash-recent"><thead><tr><th>Date</th><th>Description</th><th>Amount</th><th>Category</th><th>Type</th></tr></thead><tbody id="dash-recent-body"><tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px">Loading…</td></tr></tbody></table>
       </div>
     </div>
 
-    <!-- Toolbar -->
-    <div class="toolbar" id="toolbar" style="display:none">
-      <button class="btn btn-primary" id="btnCategorize" onclick="categorize()">
-        ✨ Auto-Categorize
-      </button>
-      <button class="btn btn-ghost btn-sm" id="btnExport" onclick="exportCSV()" disabled>
-        ⬇ Export CSV
-      </button>
-      <span style="margin-left:auto;font-size:12px;color:var(--muted)" id="txCount"></span>
+    <!-- Ledger -->
+    <div class="module" id="mod-ledger">
+      <div class="toolbar">
+        <button class="btn btn-accent" onclick="addLedgerRow()">+ Add Row</button>
+        <button class="btn" onclick="document.getElementById('importFile').click()">📂 Import CSV / Excel</button>
+        <input type="file" id="importFile" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleImport(this)">
+        <button class="btn" onclick="aiCategorizeLedger()">✨ AI Categorize</button>
+        <div class="spacer"></div>
+        <button class="btn" onclick="exportLedger()">📥 Export CSV</button>
+      </div>
+      <div class="grid-wrap">
+        <div id="ledgerGrid" class="ag-theme-alpine-dark" style="height:calc(100vh - 220px)"></div>
+      </div>
     </div>
 
-    <!-- Table -->
-    <div class="table-wrap">
-      <div class="empty" id="emptyState">
-        <div class="empty-icon">📊</div>
-        <div>Upload a file to get started</div>
-        <div style="font-size:12px;margin-top:6px">Supports any CSV or Excel bank/accounting export</div>
+    <!-- P&L -->
+    <div class="module" id="mod-pl">
+      <div class="pl-controls">
+        <label style="font-size:13px;color:var(--muted)">Period:</label>
+        <select id="plMonths" onchange="loadPL()" style="width:160px">
+          <option value="3">Last 3 months</option>
+          <option value="6" selected>Last 6 months</option>
+          <option value="12">Last 12 months</option>
+        </select>
+        <div class="spacer"></div>
+        <button class="btn" onclick="window.print()">🖨 Print</button>
       </div>
-      <table id="txTable" style="display:none">
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Description</th>
-            <th>Amount</th>
-            <th>Category</th>
-          </tr>
-        </thead>
-        <tbody id="txBody"></tbody>
+      <div class="tbl-wrap" id="plWrap">
+        <div style="text-align:center;padding:30px;color:var(--muted)">Loading P&amp;L…</div>
+      </div>
+    </div>
+
+    <!-- Invoices -->
+    <div class="module" id="mod-invoices">
+      <div class="toolbar">
+        <button class="btn btn-accent" onclick="newInvoice()">+ New Invoice</button>
+        <div class="spacer"></div>
+        <span style="font-size:12px;color:var(--muted)" id="inv-count">0 invoices</span>
+      </div>
+      <div class="inv-layout">
+        <div>
+          <div id="inv-list"><div class="empty"><div class="empty-icon">🧾</div><p>No invoices yet.<br>Click + New Invoice to create your first.</p></div></div>
+        </div>
+        <div id="inv-form-wrap" style="display:none">
+          <div class="section-card">
+            <div class="section-title">Invoice <span id="inv-form-mode">New</span>
+              <button class="btn btn-sm" style="margin-left:auto" onclick="document.getElementById('inv-form-wrap').style.display='none'">✕</button>
+            </div>
+            <div class="form-row cols-2">
+              <div class="form-group"><label>Invoice #</label><input id="inv-number" placeholder="INV-001"></div>
+              <div class="form-group"><label>Status</label>
+                <select id="inv-status"><option value="draft">Draft</option><option value="sent">Sent</option><option value="paid">Paid</option><option value="overdue">Overdue</option></select>
+              </div>
+            </div>
+            <div class="form-row cols-2">
+              <div class="form-group"><label>Client Name</label><input id="inv-client" placeholder="Acme Corp"></div>
+              <div class="form-group"><label>Client Email</label><input id="inv-email" type="email" placeholder="client@example.com"></div>
+            </div>
+            <div class="form-row cols-2">
+              <div class="form-group"><label>Issue Date</label><input id="inv-date" type="date"></div>
+              <div class="form-group"><label>Due Date</label><input id="inv-due" type="date"></div>
+            </div>
+            <div class="section-title" style="margin-top:12px">Line Items</div>
+            <table class="line-items-table" id="inv-items-table">
+              <thead><tr><th style="width:45%">Description</th><th style="width:15%">Qty</th><th style="width:20%">Rate ($)</th><th style="width:15%">Amount</th><th style="width:5%"></th></tr></thead>
+              <tbody id="inv-items-body"></tbody>
+            </table>
+            <button class="btn btn-sm" onclick="addInvLine()" style="margin-bottom:8px">+ Add Line</button>
+            <div class="form-row cols-2">
+              <div class="form-group"><label>Tax Rate (%)</label><input id="inv-tax" type="number" placeholder="0" value="0" oninput="recalcInv()"></div>
+              <div class="form-group"><label>Notes</label><textarea id="inv-notes" rows="2"></textarea></div>
+            </div>
+            <div class="inv-totals">
+              <div class="inv-totals-row"><span>Subtotal</span><span id="inv-subtotal">$0.00</span></div>
+              <div class="inv-totals-row"><span>Tax</span><span id="inv-tax-amt">$0.00</span></div>
+              <div class="inv-totals-row total"><span>Total</span><span id="inv-total">$0.00</span></div>
+            </div>
+            <div class="toolbar" style="margin-top:12px">
+              <button class="btn btn-accent" onclick="saveInvoice()">💾 Save</button>
+              <button class="btn" onclick="markInvoice('sent')">✉ Mark Sent</button>
+              <button class="btn" onclick="markInvoice('paid')">✅ Mark Paid</button>
+              <div class="spacer"></div>
+              <button class="btn btn-danger" onclick="deleteInvoice()">Delete</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Expenses -->
+    <div class="module" id="mod-expenses">
+      <div class="quick-add">
+        <div class="form-group"><label>Date</label><input id="exp-date" type="date"></div>
+        <div class="form-group"><label>Vendor</label><input id="exp-vendor" placeholder="Amazon"></div>
+        <div class="form-group" style="flex:2"><label>Description</label><input id="exp-desc" placeholder="Office supplies"></div>
+        <div class="form-group"><label>Amount ($)</label><input id="exp-amount" type="number" placeholder="0.00"></div>
+        <div class="form-group">
+          <label>Category</label>
+          <select id="exp-cat">
+            <option value="Uncategorized">Uncategorized</option>
+          </select>
+        </div>
+        <button class="btn btn-accent" onclick="addExpense()" style="align-self:flex-end;flex-shrink:0">+ Add</button>
+        <button class="btn" onclick="aiCategorizeExpenses()" style="align-self:flex-end;flex-shrink:0">✨ AI Categorize</button>
+      </div>
+      <div class="grid-wrap">
+        <div id="expensesGrid" class="ag-theme-alpine-dark" style="height:calc(100vh - 280px)"></div>
+      </div>
+    </div>
+
+    <!-- Payroll -->
+    <div class="module" id="mod-payroll">
+      <div class="payroll-layout">
+        <div>
+          <div class="toolbar"><div class="section-title">Employees</div><div class="spacer"></div><button class="btn btn-accent" onclick="openAddEmployee()">+ Add Employee</button></div>
+          <div class="grid-wrap">
+            <div id="employeesGrid" class="ag-theme-alpine-dark" style="height:380px"></div>
+          </div>
+        </div>
+        <div>
+          <div class="toolbar"><div class="section-title">Payroll Runs</div><div class="spacer"></div><button class="btn btn-accent" onclick="openRunPayroll()">▶ Run Payroll</button></div>
+          <div class="tbl-wrap">
+            <table class="tbl" id="payrollRunsTable"><thead><tr><th>Period</th><th>Pay Date</th><th>Gross</th><th>Net</th><th>Status</th><th></th></tr></thead><tbody id="payrollRunsBody"><tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px">No payroll runs yet</td></tr></tbody></table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Marketing -->
+    <div class="module" id="mod-marketing">
+      <div class="mkt-kpis" id="mktKpis">
+        <div class="mkt-kpi"><div class="mkt-kpi-val" id="mkt-budget">$0</div><div class="mkt-kpi-label">Total Budget</div></div>
+        <div class="mkt-kpi"><div class="mkt-kpi-val" id="mkt-spent">$0</div><div class="mkt-kpi-label">Total Spent</div></div>
+        <div class="mkt-kpi"><div class="mkt-kpi-val" id="mkt-leads">0</div><div class="mkt-kpi-label">Total Leads</div></div>
+        <div class="mkt-kpi"><div class="mkt-kpi-val" id="mkt-revenue">$0</div><div class="mkt-kpi-label">Total Revenue</div></div>
+        <div class="mkt-kpi"><div class="mkt-kpi-val" id="mkt-roi">0%</div><div class="mkt-kpi-label">Avg ROI</div></div>
+      </div>
+      <div class="toolbar">
+        <button class="btn btn-accent" onclick="addCampaign()">+ New Campaign</button>
+        <div class="spacer"></div>
+        <button class="btn" onclick="exportMarketing()">📥 Export</button>
+      </div>
+      <div class="grid-wrap">
+        <div id="marketingGrid" class="ag-theme-alpine-dark" style="height:calc(100vh - 300px)"></div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- ── AI Panel ── -->
+<aside class="ai-panel">
+  <div class="ai-header">
+    <div class="ai-dot"></div>
+    <span class="ai-title">Ask BooksAI</span>
+    <span class="ai-module-badge" id="ai-module-badge">Dashboard</span>
+  </div>
+  <div class="ai-messages" id="aiMessages">
+    <div class="msg assistant">👋 Hi! I'm BooksAI, your AI bookkeeper. Upload transactions via the Ledger, or ask me anything about your finances.</div>
+  </div>
+  <div class="ai-chips" id="aiChips"></div>
+  <div class="ai-input-row">
+    <textarea class="ai-input" id="aiInput" placeholder="Ask about your finances…" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat()}"></textarea>
+    <button class="ai-send" onclick="sendChat()">
+      <svg viewBox="0 0 24 24"><path d="M22 2L11 13M22 2L15 22 11 13 2 9l20-7z"/></svg>
+    </button>
+  </div>
+</aside>
+
+<!-- ── Import Modal ── -->
+<div class="modal-bg" id="importModal">
+  <div class="modal modal-wide">
+    <div class="modal-header">
+      <span class="modal-title">Import Preview</span>
+      <button class="modal-close" onclick="closeModal('importModal')">✕</button>
+    </div>
+    <div id="importStatus" style="font-size:12px;color:var(--muted);margin-bottom:10px"></div>
+    <div style="max-height:360px;overflow-y:auto">
+      <table class="tbl" id="importPreviewTable">
+        <thead><tr><th>Date</th><th>Description</th><th>Amount</th><th>Category</th><th>Type</th></tr></thead>
+        <tbody id="importPreviewBody"></tbody>
       </table>
     </div>
-  </div>
-
-  <!-- ── Right: Chat Panel ── -->
-  <div class="chat">
-    <div class="chat-header">💬 Ask BooksAI</div>
-
-    <div class="chat-messages" id="chatMessages">
-      <div class="msg assistant">
-        Hi! Upload your transaction file and I'll help you understand your finances. You can ask me anything — "What's my biggest expense?", "How's my cash flow?", "Which category is highest?" — I've got you covered.
-      </div>
-    </div>
-
-    <div class="suggestions" id="suggestions">
-      <div class="suggestion" onclick="askSuggestion(this)">What's my biggest expense?</div>
-      <div class="suggestion" onclick="askSuggestion(this)">Show income vs expenses</div>
-      <div class="suggestion" onclick="askSuggestion(this)">Any unusual transactions?</div>
-      <div class="suggestion" onclick="askSuggestion(this)">What's my net profit?</div>
-    </div>
-
-    <div class="chat-input-row">
-      <textarea class="chat-input" id="chatInput" placeholder="Ask about your finances…" rows="1"
-        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat();}"></textarea>
-      <button class="send-btn" id="sendBtn" onclick="sendChat()">➤</button>
+    <div class="toolbar" style="margin-top:12px">
+      <button class="btn btn-accent" id="importConfirmBtn" onclick="confirmImport()">✅ Import All</button>
+      <button class="btn" onclick="closeModal('importModal')">Cancel</button>
+      <span id="importCount" style="font-size:12px;color:var(--muted);margin-left:8px"></span>
     </div>
   </div>
+</div>
 
+<!-- ── Add Employee Modal ── -->
+<div class="modal-bg" id="empModal">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Add Employee</span><button class="modal-close" onclick="closeModal('empModal')">✕</button></div>
+    <div class="form-row cols-2">
+      <div class="form-group"><label>Full Name</label><input id="emp-name" placeholder="Jane Smith"></div>
+      <div class="form-group"><label>Title</label><input id="emp-title" placeholder="Software Engineer"></div>
+    </div>
+    <div class="form-row cols-2">
+      <div class="form-group"><label>Email</label><input id="emp-email" type="email" placeholder="jane@company.com"></div>
+      <div class="form-group"><label>Start Date</label><input id="emp-start" type="date"></div>
+    </div>
+    <div class="form-row cols-2">
+      <div class="form-group"><label>Pay Type</label><select id="emp-paytype"><option value="salary">Salary</option><option value="hourly">Hourly</option></select></div>
+      <div class="form-group"><label>Rate ($/yr or $/hr)</label><input id="emp-rate" type="number" placeholder="60000"></div>
+    </div>
+    <div class="toolbar" style="margin-top:12px">
+      <button class="btn btn-accent" onclick="saveEmployee()">Save Employee</button>
+      <button class="btn" onclick="closeModal('empModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Run Payroll Modal ── -->
+<div class="modal-bg" id="payrollModal">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Run Payroll</span><button class="modal-close" onclick="closeModal('payrollModal')">✕</button></div>
+    <div class="form-row cols-2">
+      <div class="form-group"><label>Period Start</label><input id="pr-start" type="date"></div>
+      <div class="form-group"><label>Period End</label><input id="pr-end" type="date"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Pay Date</label><input id="pr-date" type="date"></div>
+    </div>
+    <div style="background:var(--surface2);border-radius:8px;padding:12px;font-size:13px;color:var(--muted);margin:8px 0">
+      Payroll will be calculated for all active employees. Estimated totals will appear after saving.
+    </div>
+    <div class="toolbar" style="margin-top:12px">
+      <button class="btn btn-accent" onclick="runPayroll()">▶ Process Payroll</button>
+      <button class="btn" onclick="closeModal('payrollModal')">Cancel</button>
+    </div>
+  </div>
 </div>
 
 <script>
-  let transactions  = [];
-  let categorized   = [];   // [{id, category, type}]
-  let chatHistory   = [];
+// ── State ──────────────────────────────────────────────────────────────────
+const CATEGORIES = ['Revenue / Sales','Cost of Goods Sold','Payroll / Wages','Rent / Lease','Utilities','Marketing / Advertising','Software / Subscriptions','Professional Services','Travel / Transportation','Meals / Entertainment','Office Supplies','Bank Fees / Finance Charges','Taxes / Licenses','Insurance','Loan / Debt Payment','Owner Draw / Distribution','Transfer','Uncategorized'];
+let currentModule = 'dashboard';
+let chatHistory   = [];
+let grids         = {};
+let currentInvoiceId = null;
+let importRows    = [];
+let importCategorized = [];
+let chartPL, chartExp;
+const MODULE_TITLES = {
+  dashboard:'Dashboard', ledger:'Ledger', pl:'P&L Statement',
+  invoices:'Invoices', expenses:'Expenses', payroll:'Payroll', marketing:'Marketing'
+};
+const MODULE_SUBS = {
+  dashboard:'Overview of your business finances',
+  ledger:'All transactions — click any cell to edit',
+  pl:'Auto-generated income statement',
+  invoices:'Create and manage client invoices',
+  expenses:'Track and categorize business expenses',
+  payroll:'Manage employees and pay runs',
+  marketing:'Campaign performance and ROI'
+};
+const MODULE_CHIPS = {
+  dashboard:["What's my net profit?","Top expense categories","Any financial concerns?","Year-to-date summary"],
+  ledger:["Summarize my transactions","Find unusual transactions","Biggest vendors","Income vs expense ratio"],
+  pl:["Why is this month low?","Compare to last month","Biggest expense categories","Revenue trend"],
+  invoices:["What's overdue?","Average invoice size","Best clients","Unpaid invoice total"],
+  expenses:["Where am I overspending?","Uncategorized expenses","Monthly expense trend","Biggest categories"],
+  payroll:["Total payroll cost","Headcount summary","Payroll as % of revenue"],
+  marketing:["Best ROI campaign","Cost per lead","Budget vs actual spend","Top performing channel"]
+};
 
-  // ── Upload ──────────────────────────────────────────────────────────────
+// ── Helpers ────────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const fmt = n => new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(n||0);
+const today = () => new Date().toISOString().split('T')[0];
 
-  const zone = document.getElementById('uploadZone');
-  zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('drag'); });
-  zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
-  zone.addEventListener('drop', e => {
-    e.preventDefault();
-    zone.classList.remove('drag');
-    const f = e.dataTransfer.files[0];
-    if (f) handleFile(f);
+async function api(method, url, body) {
+  const opts = {method, headers:{'Content-Type':'application/json'}};
+  if (body !== undefined) opts.body = JSON.stringify(body);
+  const r = await fetch(url, opts);
+  return r.json();
+}
+
+// ── Navigation ─────────────────────────────────────────────────────────────
+function navigate(mod) {
+  document.querySelectorAll('.module').forEach(m => m.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  $('mod-'+mod).classList.add('active');
+  $('nav-'+mod).classList.add('active');
+  $('topbar-title').textContent = MODULE_TITLES[mod];
+  $('topbar-sub').textContent   = MODULE_SUBS[mod];
+  $('ai-module-badge').textContent = MODULE_TITLES[mod];
+  currentModule = mod;
+  updateChips();
+  loadModule(mod);
+}
+
+async function loadModule(mod) {
+  if (mod === 'dashboard')  await loadDashboard();
+  if (mod === 'ledger')     await loadLedger();
+  if (mod === 'pl')         await loadPL();
+  if (mod === 'invoices')   await loadInvoices();
+  if (mod === 'expenses')   await loadExpenses();
+  if (mod === 'payroll')    await loadPayroll();
+  if (mod === 'marketing')  await loadMarketing();
+}
+
+// ── Dashboard ──────────────────────────────────────────────────────────────
+async function loadDashboard() {
+  const d = await api('GET', '/api/dashboard');
+  $('kpi-income').textContent   = fmt(d.income);
+  $('kpi-expenses').textContent = fmt(d.expenses);
+  const net = d.net;
+  $('kpi-net').textContent    = fmt(net);
+  $('kpi-net').className      = 'kpi-val ' + (net >= 0 ? 'net-pos' : 'net-neg');
+  $('kpi-net-sub').textContent = net >= 0 ? 'Profitable' : 'Operating at a loss';
+  $('kpi-inv').textContent    = fmt(d.inv_outstanding);
+  $('kpi-inv-sub').textContent = fmt(d.inv_paid) + ' paid';
+
+  // Monthly P&L chart
+  const labels = d.monthly.map(m => m.label);
+  const income  = d.monthly.map(m => m.income);
+  const expenses = d.monthly.map(m => m.expenses);
+  if (chartPL) chartPL.destroy();
+  chartPL = new Chart($('chartPL'), {
+    type:'bar',
+    data:{labels, datasets:[
+      {label:'Income',  data:income,  backgroundColor:'rgba(63,185,80,.7)',  borderRadius:4},
+      {label:'Expenses',data:expenses,backgroundColor:'rgba(248,81,73,.7)', borderRadius:4}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#7d8590',font:{size:11}}}},
+      scales:{x:{ticks:{color:'#7d8590',font:{size:10}},grid:{color:'#30363d'}},
+              y:{ticks:{color:'#7d8590',font:{size:10},callback:v=>'$'+v.toLocaleString()},grid:{color:'#30363d'}}}}
   });
-  document.getElementById('fileInput').addEventListener('change', e => {
-    if (e.target.files[0]) handleFile(e.target.files[0]);
+
+  // Expense donut
+  if (chartExp) chartExp.destroy();
+  const cats = d.top_categories;
+  if (cats.length) {
+    const palette = ['#f85149','#d29922','#388bfd','#3fb950','#a371f7','#fb8f44','#39d353'];
+    chartExp = new Chart($('chartExp'), {
+      type:'doughnut',
+      data:{labels:cats.map(c=>c.name), datasets:[{data:cats.map(c=>c.amount),backgroundColor:palette,borderWidth:0}]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{position:'right',labels:{color:'#7d8590',font:{size:10},boxWidth:10,padding:8}}}}
+    });
+  }
+
+  // Recent table
+  const body = $('dash-recent-body');
+  if (!d.recent.length) {
+    body.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px">No transactions yet. Go to Ledger to add or import transactions.</td></tr>';
+    return;
+  }
+  body.innerHTML = d.recent.map(t => `<tr>
+    <td style="color:var(--muted)">${t.date}</td>
+    <td>${t.description}</td>
+    <td class="${t.tx_type==='income'?'amt-inc':'amt-exp'}">${fmt(t.amount)}</td>
+    <td><span style="color:var(--muted);font-size:11px">${t.category}</span></td>
+    <td><span class="badge badge-${t.tx_type}">${t.tx_type}</span></td>
+  </tr>`).join('');
+}
+
+// ── Ledger ─────────────────────────────────────────────────────────────────
+async function loadLedger() {
+  const rows = await api('GET', '/api/transactions');
+  if (grids.ledger) { grids.ledger.setGridOption('rowData', rows); return; }
+
+  const colDefs = [
+    {field:'date', headerName:'Date', editable:true, width:120,
+     cellEditor:'agDateStringCellEditor'},
+    {field:'description', headerName:'Description', editable:true, flex:2,
+     cellEditorParams:{useFormatter:false}},
+    {field:'amount', headerName:'Amount', editable:true, width:130, type:'rightAligned',
+     valueFormatter:p=>p.value!=null?fmt(p.value):'',
+     cellClass:p=>p.data&&p.data.tx_type==='income'?'amt-inc':'amt-exp'},
+    {field:'category', headerName:'Category', editable:true, width:180,
+     cellEditor:'agSelectCellEditor', cellEditorParams:{values:CATEGORIES}},
+    {field:'tx_type', headerName:'Type', editable:true, width:100,
+     cellEditor:'agSelectCellEditor', cellEditorParams:{values:['income','expense']},
+     cellRenderer:p=>`<span class="badge badge-${p.value}">${p.value||'—'}</span>`},
+    {headerName:'', width:50, sortable:false, resizable:false,
+     cellRenderer:p=>`<button onclick="delLedgerRow(${p.data.id})" style="background:none;border:none;color:var(--expense);cursor:pointer;font-size:16px;padding:0 4px" title="Delete">×</button>`}
+  ];
+
+  const gridOptions = {
+    columnDefs: colDefs,
+    rowData: rows,
+    defaultColDef:{resizable:true, sortable:true, filter:true},
+    animateRows:true,
+    pagination:true,
+    paginationPageSize:100,
+    onCellValueChanged: async e => {
+      if (!e.data.id) return;
+      await api('PUT', `/api/transactions/${e.data.id}`, e.data);
+    }
+  };
+  const el = $('ledgerGrid');
+  grids.ledger = agGrid.createGrid(el, gridOptions);
+}
+
+async function addLedgerRow() {
+  const row = {date:today(), description:'', amount:0, category:'Uncategorized', tx_type:'expense'};
+  const saved = await api('POST', '/api/transactions', row);
+  grids.ledger.applyTransaction({add:[saved]});
+}
+
+async function delLedgerRow(id) {
+  await api('DELETE', `/api/transactions/${id}`);
+  const rows = grids.ledger.getRenderedNodes().map(n=>n.data).filter(r=>r.id===id);
+  grids.ledger.applyTransaction({remove:rows});
+}
+
+function exportLedger() {
+  if (grids.ledger) grids.ledger.exportDataAsCsv({fileName:'booksai-ledger.csv'});
+}
+
+// ── Import CSV Flow ────────────────────────────────────────────────────────
+async function handleImport(input) {
+  const file = input.files[0]; if (!file) return;
+  input.value = '';
+  $('importStatus').innerHTML = '<span class="spinner"></span> 🔍 Excel Agent analyzing structure…';
+  $('importModal').classList.add('open');
+  $('importPreviewBody').innerHTML = '';
+  $('importConfirmBtn').disabled = true;
+  $('importCount').textContent = '';
+
+  // Step 1: Upload
+  const fd = new FormData(); fd.append('file', file);
+  const up = await fetch('/upload', {method:'POST', body:fd}).then(r=>r.json());
+  if (!up.success) { $('importStatus').textContent = 'Upload failed: ' + up.error; return; }
+
+  // Step 2: AI Clean
+  $('importStatus').innerHTML = '<span class="spinner"></span> ✨ Cleaning ' + up.transactions.length + ' rows…';
+  const cl = await api('POST', '/clean', {transactions: up.transactions});
+  let cleanedRows = cl.success ? cl.transactions : up.transactions;
+
+  // Step 3: AI Categorize (chunked)
+  $('importStatus').innerHTML = '<span class="spinner"></span> Categorizing ' + cleanedRows.length + ' transactions…';
+  const BATCH = 80;
+  let allCats = [];
+  for (let b = 0; b < Math.ceil(cleanedRows.length / BATCH); b++) {
+    const offset = b * BATCH;
+    const slice  = cleanedRows.slice(offset, offset + BATCH);
+    const res = await api('POST', '/categorize', {transactions: slice, id_offset: offset});
+    allCats = allCats.concat(res.categories || []);
+  }
+
+  // Build catMap
+  const catMap = {};
+  allCats.forEach(c => { catMap[c.id] = c; });
+  importRows = cleanedRows.map((r, i) => {
+    const info = catMap[i+1] || {};
+    return {...r, category: info.category || 'Uncategorized', tx_type: info.type || (parseFloat(r.amount)>=0?'income':'expense')};
   });
 
-  async function handleFile(file) {
-    document.getElementById('uploadLabel').innerHTML =
-      `<span class="spinner"></span> Reading ${file.name}…`;
-    document.getElementById('cleanReport').style.display = 'none';
+  // Preview
+  $('importStatus').textContent = (cl.agent_notes ? '🤖 ' + cl.agent_notes : '') || `Ready to import ${importRows.length} transactions`;
+  $('importCount').textContent  = `${importRows.length} rows`;
+  $('importPreviewBody').innerHTML = importRows.slice(0, 50).map((r,i) => `<tr>
+    <td style="color:var(--muted)">${r.date}</td><td>${r.description}</td>
+    <td class="${r.tx_type==='income'?'amt-inc':'amt-exp'}">${fmt(parseFloat(r.amount))}</td>
+    <td><span style="font-size:11px;color:var(--muted)">${r.category}</span></td>
+    <td><span class="badge badge-${r.tx_type}">${r.tx_type}</span></td>
+  </tr>`).join('') + (importRows.length > 50 ? `<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:8px">…and ${importRows.length - 50} more rows</td></tr>` : '');
+  $('importConfirmBtn').disabled = false;
+}
 
-    const fd = new FormData();
-    fd.append('file', file);
+async function confirmImport() {
+  $('importConfirmBtn').disabled = true;
+  $('importConfirmBtn').innerHTML = '<span class="spinner"></span> Importing…';
+  const res = await api('POST', '/api/transactions/bulk', importRows);
+  closeModal('importModal');
+  await loadLedger();
+  if (currentModule === 'dashboard') await loadDashboard();
+  addAIMessage('assistant', `✅ Imported ${res.added} transactions successfully! Head to the Dashboard to see your updated P&L.`);
+}
 
-    try {
-      // Step 1: Parse file
-      const r    = await fetch('/upload', { method: 'POST', body: fd });
-      const data = await r.json();
-      if (!r.ok || data.error) throw new Error(data.error || 'Upload failed');
+// ── AI Categorize Ledger ───────────────────────────────────────────────────
+async function aiCategorizeLedger() {
+  if (!grids.ledger) return;
+  const allRows = [];
+  grids.ledger.forEachNode(n => allRows.push(n.data));
+  if (!allRows.length) return;
 
-      const rawTransactions = data.transactions;
-      categorized = [];
-
-      // Step 2: Auto-clean with Excel Intelligence Agent
-      document.getElementById('uploadLabel').innerHTML =
-        `<span class="spinner"></span> 🔍 Excel Agent analyzing structure…`;
-
-      const cleanRes  = await fetch('/clean', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ transactions: rawTransactions }),
-      });
-      const cleanData = await cleanRes.json();
-
-      if (cleanData.success) {
-        transactions = cleanData.transactions;
-
-        // Show clean report
-        const removed   = cleanData.removed || 0;
-        const dataType  = cleanData.data_type || '';
-        const fields    = cleanData.fields_detected || {};
-        const issues    = cleanData.issues || [];
-        const reportEl  = document.getElementById('cleanReport');
-        reportEl.style.display = 'block';
-        const agentNotes = cleanData.agent_notes || '';
-        reportEl.innerHTML = `
-          ✅ <strong>AI cleaned your data</strong> &nbsp;·&nbsp;
-          ${cleanData.original_count} rows → <strong>${cleanData.cleaned_count} clean records</strong>
-          ${removed > 0 ? ` &nbsp;·&nbsp; ${removed} duplicates/blanks removed` : ''}
-          ${dataType ? ` &nbsp;·&nbsp; Detected: ${dataType.replace(/_/g,' ')}` : ''}
-          ${issues.length ? `<br>⚠ Issues fixed: ${issues.slice(0,3).join(' · ')}` : ''}
-          ${agentNotes ? `<br>🤖 <em>${agentNotes}</em>` : ''}
-        `;
-      } else {
-        transactions = rawTransactions; // fallback to raw if clean fails
-      }
-
-      zone.classList.add('has-file');
-      document.getElementById('uploadLabel').textContent =
-        `✓ ${file.name} · ${transactions.length} transactions`;
-      document.getElementById('summary').style.display = 'grid';
-      document.getElementById('toolbar').style.display = 'flex';
-      document.getElementById('txCount').textContent   = `${transactions.length} rows`;
-      document.getElementById('emptyState').style.display = 'none';
-      document.getElementById('txTable').style.display   = '';
-
-      renderTable();
-      updateSummary();
-
-      addMessage('assistant',
-        `✅ Your file is loaded and cleaned! The Excel Agent analyzed your column structure and found ${transactions.length} valid transactions.${cleanData.removed > 0 ? ` Removed ${cleanData.removed} duplicates and blank rows.` : ''}${cleanData.agent_notes ? ` 🤖 ${cleanData.agent_notes}` : ''} Click **Auto-Categorize** to classify every transaction, or ask me anything.`
-      );
-
-    } catch(e) {
-      document.getElementById('uploadLabel').textContent = '⚠ ' + e.message;
-      zone.classList.remove('has-file');
-    }
-  }
-
-  // ── Render Table ─────────────────────────────────────────────────────────
-
-  function renderTable() {
-    const catMap = {};
-    categorized.forEach(c => { catMap[c.id] = c; });
-
-    const body = document.getElementById('txBody');
-    body.innerHTML = transactions.map((t, i) => {
-      const info    = catMap[i + 1] || {};
-      const cat     = info.category || '—';
-      const type    = info.type     || '';
-      const amtNum  = parseFloat((t.amount || '0').replace(/[$,]/g, '')) || 0;
-      const amtCls  = type === 'income' ? 'amt-income' : (type === 'expense' ? 'amt-expense' : '');
-      const badgeCls = `cat-badge ${type}`;
-      return `<tr>
-        <td style="color:var(--muted);white-space:nowrap">${t.date}</td>
-        <td>${t.description}</td>
-        <td class="${amtCls}">${t.amount}</td>
-        <td>${cat !== '—' ? `<span class="${badgeCls}">${cat}</span>` : '<span style="color:var(--muted)">—</span>'}</td>
-      </tr>`;
-    }).join('');
-  }
-
-  // ── Summary Cards ────────────────────────────────────────────────────────
-
-  function updateSummary() {
-    const catMap = {};
-    categorized.forEach(c => { catMap[c.id] = c; });
-
-    let income = 0, expenses = 0;
-    transactions.forEach((t, i) => {
-      const amt  = parseFloat((t.amount || '0').replace(/[$,]/g, '')) || 0;
-      const info = catMap[i + 1] || {};
-      const type = info.type || (amt >= 0 ? 'income' : 'expense');
-      if (type === 'income')  income   += Math.abs(amt);
-      else                    expenses += Math.abs(amt);
+  const BATCH = 80;
+  for (let b = 0; b < Math.ceil(allRows.length / BATCH); b++) {
+    const offset = b * BATCH;
+    const slice  = allRows.slice(offset, offset + BATCH).map(r => ({date:r.date||'',description:r.description||'',amount:String(r.amount||0)}));
+    const res = await api('POST', '/categorize', {transactions:slice, id_offset:offset});
+    (res.categories||[]).forEach(c => {
+      const row = allRows[c.id - 1];
+      if (!row) return;
+      row.category = c.category; row.tx_type = c.type;
+      grids.ledger.applyTransaction({update:[row]});
+      api('PUT', `/api/transactions/${row.id}`, row);
     });
-
-    const net    = income - expenses;
-    const netEl  = document.getElementById('cardNet');
-    document.getElementById('cardIncome').textContent   = fmt(income);
-    document.getElementById('cardExpenses').textContent = fmt(expenses);
-    netEl.textContent = fmt(net);
-    netEl.className   = `card-value net ${net >= 0 ? 'pos' : 'neg'}`;
   }
+  addAIMessage('assistant', `✨ Categorized ${allRows.length} transactions using AI!`);
+}
 
-  function fmt(n) {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
+// ── P&L ────────────────────────────────────────────────────────────────────
+async function loadPL() {
+  const months = $('plMonths').value;
+  const d = await api('GET', `/api/pl?months=${months}`);
+  const cols = d.columns;
+  const fmtNum = n => n ? fmt(n) : '<span style="color:var(--border)">—</span>';
+
+  let html = `<div style="overflow-x:auto"><table class="pl-table"><thead><tr>
+    <th style="text-align:left">Account</th>
+    ${cols.map(c=>`<th>${c}</th>`).join('')}
+    <th>Total</th>
+  </tr></thead><tbody>`;
+
+  // Income section
+  html += `<tr class="pl-section-header"><td colspan="${cols.length+2}">INCOME</td></tr>`;
+  (d.income_rows||[]).forEach(r => {
+    html += `<tr><td>${r.category}</td>${r.months.map(fmtNum).join('')}<td style="font-weight:600;color:var(--income)">${fmtNum(r.total)}</td></tr>`;
+  });
+  html += `<tr class="pl-total"><td>Total Income</td>${d.total_income.map(v=>`<td style="color:var(--income)">${fmtNum(v)}</td>`).join('')}<td style="color:var(--income)">${fmtNum(d.total_income.reduce((a,b)=>a+b,0))}</td></tr>`;
+
+  // Expense section
+  html += `<tr class="pl-section-header"><td colspan="${cols.length+2}">EXPENSES</td></tr>`;
+  (d.expense_rows||[]).forEach(r => {
+    html += `<tr><td>${r.category}</td>${r.months.map(fmtNum).join('')}<td style="font-weight:600;color:var(--expense)">${fmtNum(r.total)}</td></tr>`;
+  });
+  html += `<tr class="pl-total"><td>Total Expenses</td>${d.total_expense.map(v=>`<td style="color:var(--expense)">${fmtNum(v)}</td>`).join('')}<td style="color:var(--expense)">${fmtNum(d.total_expense.reduce((a,b)=>a+b,0))}</td></tr>`;
+
+  // Net
+  const totalNet = d.net_profit.reduce((a,b)=>a+b,0);
+  html += `<tr class="pl-net"><td>NET PROFIT / LOSS</td>${d.net_profit.map(v=>`<td style="color:${v>=0?'var(--income)':'var(--expense)'}">${fmtNum(v)}</td>`).join('')}<td style="color:${totalNet>=0?'var(--income)':'var(--expense)'};font-size:15px">${fmtNum(totalNet)}</td></tr>`;
+
+  html += '</tbody></table></div>';
+
+  if (!d.income_rows.length && !d.expense_rows.length) {
+    html = '<div class="empty"><div class="empty-icon">📈</div><p>No transaction data yet.<br>Add transactions in the Ledger to generate your P&L.</p></div>';
   }
+  $('plWrap').innerHTML = html;
+}
 
-  // ── Categorize ───────────────────────────────────────────────────────────
+// ── Invoices ───────────────────────────────────────────────────────────────
+let invLines = [];
+async function loadInvoices() {
+  const invs = await api('GET', '/api/invoices');
+  $('inv-count').textContent = `${invs.length} invoice${invs.length!==1?'s':''}`;
+  if (!invs.length) {
+    $('inv-list').innerHTML = '<div class="empty"><div class="empty-icon">🧾</div><p>No invoices yet.<br>Click + New Invoice to create your first.</p></div>';
+    return;
+  }
+  $('inv-list').innerHTML = invs.map(inv => `
+    <div class="inv-list-item${currentInvoiceId===inv.id?' selected':''}" onclick="openInvoice(${inv.id})">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div class="inv-number">${inv.number}</div>
+        <div class="inv-amount">${fmt(inv.total)}</div>
+      </div>
+      <div class="inv-client">${inv.client_name||'<em>No client</em>'}</div>
+      <div class="inv-meta">
+        <span class="badge badge-${inv.status}">${inv.status}</span>
+        <span style="font-size:11px;color:var(--muted)">${inv.date||'—'} · Due ${inv.due_date||'—'}</span>
+      </div>
+    </div>`).join('');
+}
 
-  async function categorize() {
-    if (!transactions.length) return;
-    const btn = document.getElementById('btnCategorize');
-    btn.disabled = true;
+function newInvoice() {
+  currentInvoiceId = null; invLines = [];
+  $('inv-form-mode').textContent = 'New';
+  $('inv-number').value = 'INV-' + String(Date.now()).slice(-3);
+  $('inv-client').value = $('inv-email').value = $('inv-notes').value = '';
+  $('inv-date').value = today(); $('inv-due').value = '';
+  $('inv-status').value = 'draft'; $('inv-tax').value = '0';
+  $('inv-items-body').innerHTML = '';
+  invLines = []; addInvLine();
+  recalcInv();
+  $('inv-form-wrap').style.display = 'block';
+}
 
-    const BATCH   = 80;
-    const total   = transactions.length;
-    const chunks  = Math.ceil(total / BATCH);
-    let allCats   = [];
+async function openInvoice(id) {
+  currentInvoiceId = id;
+  const inv = await api('GET', `/api/invoices`).then(list => list.find(i=>i.id===id));
+  if (!inv) return;
+  $('inv-form-mode').textContent = inv.number;
+  $('inv-number').value  = inv.number;
+  $('inv-client').value  = inv.client_name || '';
+  $('inv-email').value   = inv.client_email || '';
+  $('inv-date').value    = inv.date || today();
+  $('inv-due').value     = inv.due_date || '';
+  $('inv-status').value  = inv.status;
+  $('inv-tax').value     = inv.tax_rate || 0;
+  $('inv-notes').value   = inv.notes || '';
+  $('inv-items-body').innerHTML = '';
+  invLines = [];
+  (inv.items||[]).forEach(it => addInvLine(it));
+  recalcInv();
+  $('inv-form-wrap').style.display = 'block';
+  document.querySelectorAll('.inv-list-item').forEach(el => el.classList.remove('selected'));
+  loadInvoices();
+}
 
-    try {
-      for (let b = 0; b < chunks; b++) {
-        const offset = b * BATCH;
-        const slice  = transactions.slice(offset, offset + BATCH);
-        const done   = Math.min(offset + BATCH, total);
+function addInvLine(data={}) {
+  const idx = invLines.length;
+  invLines.push(data);
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><input value="${data.description||''}" oninput="invLines[${idx}].description=this.value;recalcInv()"></td>
+    <td><input type="number" value="${data.quantity||1}" min="0" oninput="invLines[${idx}].quantity=+this.value;recalcInv()" style="width:60px"></td>
+    <td><input type="number" value="${data.rate||0}" min="0" step="0.01" oninput="invLines[${idx}].rate=+this.value;recalcInv()" style="width:80px"></td>
+    <td id="inv-line-amt-${idx}" style="text-align:right;padding-right:8px">${fmt((data.quantity||1)*(data.rate||0))}</td>
+    <td><button onclick="removeInvLine(${idx})" style="background:none;border:none;color:var(--expense);cursor:pointer">×</button></td>`;
+  $('inv-items-body').appendChild(tr);
+}
 
-        btn.innerHTML = `<span class="spinner"></span> Categorizing ${done} / ${total}…`;
+function removeInvLine(idx) {
+  invLines[idx] = null;
+  $('inv-items-body').querySelectorAll('tr')[idx].remove();
+  recalcInv();
+}
 
-        const r    = await fetch('/categorize', {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ transactions: slice, id_offset: offset }),
-        });
-        const data = await r.json();
-        if (!r.ok || data.error) throw new Error(data.error || 'Categorize failed');
+function recalcInv() {
+  const lines = invLines.filter(Boolean);
+  const sub = lines.reduce((s,l) => s + (l.quantity||1)*(l.rate||0), 0);
+  const tax = sub * (+$('inv-tax').value||0) / 100;
+  lines.forEach((l,i) => {
+    const el = $(`inv-line-amt-${i}`);
+    if (el) el.textContent = fmt((l.quantity||1)*(l.rate||0));
+  });
+  $('inv-subtotal').textContent = fmt(sub);
+  $('inv-tax-amt').textContent  = fmt(tax);
+  $('inv-total').textContent    = fmt(sub+tax);
+}
 
-        allCats = allCats.concat(data.categories || []);
-      }
+async function saveInvoice() {
+  const lines = invLines.filter(Boolean).map(l => ({description:l.description||'',quantity:l.quantity||1,rate:l.rate||0}));
+  const body = {
+    number:$('inv-number').value, client_name:$('inv-client').value,
+    client_email:$('inv-email').value, date:$('inv-date').value,
+    due_date:$('inv-due').value, status:$('inv-status').value,
+    tax_rate:+$('inv-tax').value, notes:$('inv-notes').value, items:lines
+  };
+  if (currentInvoiceId) await api('PUT',`/api/invoices/${currentInvoiceId}`,body);
+  else await api('POST','/api/invoices',body);
+  $('inv-form-wrap').style.display = 'none';
+  currentInvoiceId = null;
+  await loadInvoices();
+}
 
-      categorized = allCats;
-      renderTable();
-      updateSummary();
-      document.getElementById('btnExport').disabled = false;
-      btn.innerHTML = '✅ Categorized';
-      btn.classList.replace('btn-primary', 'btn-ghost');
+async function markInvoice(status) {
+  if (!currentInvoiceId) return;
+  $('inv-status').value = status;
+  await saveInvoice();
+}
 
-      addMessage('assistant', `Done! I've categorized all ${transactions.length} transactions. You can now ask me anything about your finances or export the results.`);
+async function deleteInvoice() {
+  if (!currentInvoiceId) return;
+  if (!confirm('Delete this invoice?')) return;
+  await api('DELETE',`/api/invoices/${currentInvoiceId}`);
+  currentInvoiceId = null;
+  $('inv-form-wrap').style.display = 'none';
+  await loadInvoices();
+}
 
-    } catch(e) {
-      btn.innerHTML = '✨ Auto-Categorize';
-      btn.disabled  = false;
-      addMessage('assistant', `Sorry, categorization failed: ${e.message}`);
+// ── Expenses ───────────────────────────────────────────────────────────────
+async function loadExpenses() {
+  // Populate category dropdown
+  const sel = $('exp-cat');
+  if (sel.options.length <= 1) {
+    CATEGORIES.forEach(c => { const o = document.createElement('option'); o.value=o.textContent=c; sel.appendChild(o); });
+  }
+  if (!$('exp-date').value) $('exp-date').value = today();
+
+  const rows = await api('GET', '/api/expenses');
+  if (grids.expenses) { grids.expenses.setGridOption('rowData', rows); return; }
+
+  const colDefs = [
+    {field:'date', headerName:'Date', editable:true, width:110},
+    {field:'vendor', headerName:'Vendor', editable:true, width:140},
+    {field:'description', headerName:'Description', editable:true, flex:2},
+    {field:'amount', headerName:'Amount', editable:true, width:120, type:'rightAligned',
+     valueFormatter:p=>p.value!=null?fmt(p.value):'', cellClass:'amt-exp'},
+    {field:'category', headerName:'Category', editable:true, width:180,
+     cellEditor:'agSelectCellEditor', cellEditorParams:{values:CATEGORIES}},
+    {field:'status', headerName:'Status', editable:true, width:120,
+     cellEditor:'agSelectCellEditor', cellEditorParams:{values:['pending','approved','reimbursed']},
+     cellRenderer:p=>`<span class="badge badge-${p.value||'pending'}">${p.value||'pending'}</span>`},
+    {headerName:'', width:50, sortable:false, resizable:false,
+     cellRenderer:p=>`<button onclick="delExpense(${p.data.id})" style="background:none;border:none;color:var(--expense);cursor:pointer;font-size:16px;padding:0 4px">×</button>`}
+  ];
+
+  grids.expenses = agGrid.createGrid($('expensesGrid'), {
+    columnDefs:colDefs, rowData:rows,
+    defaultColDef:{resizable:true, sortable:true, filter:true},
+    animateRows:true, pagination:true, paginationPageSize:100,
+    onCellValueChanged: async e => {
+      if (e.data.id) await api('PUT', `/api/expenses/${e.data.id}`, e.data);
     }
-  }
+  });
+}
 
-  // ── Export ───────────────────────────────────────────────────────────────
+async function addExpense() {
+  const body = {
+    date:$('exp-date').value||today(),
+    vendor:$('exp-vendor').value,
+    description:$('exp-desc').value,
+    amount:parseFloat($('exp-amount').value)||0,
+    category:$('exp-cat').value||'Uncategorized',
+    status:'pending'
+  };
+  if (!body.description) return;
+  const saved = await api('POST', '/api/expenses', body);
+  grids.expenses && grids.expenses.applyTransaction({add:[saved]});
+  $('exp-vendor').value = $('exp-desc').value = $('exp-amount').value = '';
+}
 
-  function exportCSV() {
-    const catMap = {};
-    categorized.forEach(c => { catMap[c.id] = c; });
+async function delExpense(id) {
+  await api('DELETE', `/api/expenses/${id}`);
+  const rows = [];
+  grids.expenses && grids.expenses.forEachNode(n => { if(n.data.id===id) rows.push(n.data); });
+  grids.expenses && grids.expenses.applyTransaction({remove:rows});
+}
 
-    const rows = [['Date','Description','Amount','Category','Type']];
-    transactions.forEach((t, i) => {
-      const info = catMap[i + 1] || {};
-      rows.push([t.date, t.description, t.amount, info.category || '', info.type || '']);
+async function aiCategorizeExpenses() {
+  if (!grids.expenses) return;
+  const allRows = [];
+  grids.expenses.forEachNode(n => allRows.push(n.data));
+  if (!allRows.length) return;
+  const BATCH = 80;
+  for (let b = 0; b < Math.ceil(allRows.length/BATCH); b++) {
+    const offset = b * BATCH;
+    const slice  = allRows.slice(offset, offset+BATCH).map(r=>({date:r.date||'',description:(r.vendor||'')+' '+r.description,amount:String(r.amount||0)}));
+    const res = await api('POST', '/categorize', {transactions:slice, id_offset:offset});
+    (res.categories||[]).forEach(c => {
+      const row = allRows[c.id-1]; if(!row) return;
+      row.category = c.category;
+      grids.expenses.applyTransaction({update:[row]});
+      api('PUT', `/api/expenses/${row.id}`, row);
     });
+  }
+}
 
-    const csv  = rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href = url; a.download = 'booksai-categorized.csv'; a.click();
-    URL.revokeObjectURL(url);
+// ── Payroll ────────────────────────────────────────────────────────────────
+async function loadPayroll() {
+  const emps = await api('GET', '/api/employees');
+  if (grids.employees) { grids.employees.setGridOption('rowData', emps); }
+  else {
+    const colDefs = [
+      {field:'name', headerName:'Name', editable:true, flex:1},
+      {field:'title', headerName:'Title', editable:true, flex:1},
+      {field:'email', headerName:'Email', editable:true, flex:1},
+      {field:'pay_type', headerName:'Pay Type', editable:true, width:100,
+       cellEditor:'agSelectCellEditor', cellEditorParams:{values:['salary','hourly']}},
+      {field:'pay_rate', headerName:'Rate ($)', editable:true, width:110, type:'rightAligned',
+       valueFormatter:p=>p.value!=null?fmt(p.value):''},
+      {field:'status', headerName:'Status', editable:true, width:90,
+       cellEditor:'agSelectCellEditor', cellEditorParams:{values:['active','inactive']},
+       cellRenderer:p=>`<span class="badge badge-${p.value==='active'?'active':'draft'}">${p.value}</span>`},
+      {headerName:'', width:50, sortable:false,
+       cellRenderer:p=>`<button onclick="delEmployee(${p.data.id})" style="background:none;border:none;color:var(--expense);cursor:pointer;font-size:16px">×</button>`}
+    ];
+    grids.employees = agGrid.createGrid($('employeesGrid'), {
+      columnDefs:colDefs, rowData:emps,
+      defaultColDef:{resizable:true, sortable:true},
+      animateRows:true,
+      onCellValueChanged: async e => { if(e.data.id) await api('PUT',`/api/employees/${e.data.id}`,e.data); }
+    });
   }
 
-  // ── Chat ─────────────────────────────────────────────────────────────────
+  const runs = await api('GET', '/api/payroll');
+  $('payrollRunsBody').innerHTML = runs.length ? runs.map(r=>`<tr>
+    <td>${r.period_start} – ${r.period_end}</td>
+    <td>${r.pay_date}</td>
+    <td class="amt-inc">${fmt(r.total_gross)}</td>
+    <td>${fmt(r.total_net)}</td>
+    <td><span class="badge badge-${r.status==='processed'?'paid':'draft'}">${r.status}</span></td>
+    <td><button onclick="markPayrollProcessed(${r.id})" class="btn btn-sm">Process</button></td>
+  </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px">No payroll runs yet</td></tr>';
+}
 
-  async function sendChat() {
-    const input = document.getElementById('chatInput');
-    const msg   = input.value.trim();
-    if (!msg) return;
+function openAddEmployee() {
+  $('emp-name').value=$('emp-title').value=$('emp-email').value=$('emp-rate').value='';
+  $('emp-start').value=today(); $('emp-paytype').value='salary';
+  $('empModal').classList.add('open');
+}
 
-    input.value = '';
-    addMessage('user', msg);
+async function saveEmployee() {
+  const body={name:$('emp-name').value,title:$('emp-title').value,email:$('emp-email').value,pay_type:$('emp-paytype').value,pay_rate:+$('emp-rate').value,start_date:$('emp-start').value,status:'active'};
+  if(!body.name) return;
+  const saved = await api('POST','/api/employees',body);
+  grids.employees && grids.employees.applyTransaction({add:[saved]});
+  closeModal('empModal');
+}
 
-    const typing = addMessage('assistant', '…', true);
-    document.getElementById('sendBtn').disabled = true;
+async function delEmployee(id) {
+  await api('DELETE',`/api/employees/${id}`);
+  const rows=[];
+  grids.employees && grids.employees.forEachNode(n=>{if(n.data.id===id)rows.push(n.data);});
+  grids.employees && grids.employees.applyTransaction({remove:rows});
+}
 
-    try {
-      const r    = await fetch('/chat', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ message: msg, transactions, categorized, history: chatHistory }),
-      });
-      const data = await r.json();
-      if (data.error) throw new Error(data.error);
+function openRunPayroll() {
+  const d=new Date(), e=new Date(d.getFullYear(),d.getMonth()+1,0);
+  $('pr-start').value=new Date(d.getFullYear(),d.getMonth(),1).toISOString().split('T')[0];
+  $('pr-end').value=e.toISOString().split('T')[0];
+  $('pr-date').value=today();
+  $('payrollModal').classList.add('open');
+}
 
-      typing.remove();
-      const reply = addMessage('assistant', data.reply);
-      chatHistory.push({ role: 'user',      content: msg        });
-      chatHistory.push({ role: 'assistant', content: data.reply });
-      if (chatHistory.length > 24) chatHistory = chatHistory.slice(-24);
+async function runPayroll() {
+  const body={period_start:$('pr-start').value,period_end:$('pr-end').value,pay_date:$('pr-date').value};
+  await api('POST','/api/payroll',body);
+  closeModal('payrollModal');
+  await loadPayroll();
+}
 
-    } catch(e) {
-      typing.remove();
-      addMessage('assistant', `Sorry, something went wrong: ${e.message}`);
+async function markPayrollProcessed(id) {
+  await api('PUT',`/api/payroll/${id}`,{status:'processed'});
+  await loadPayroll();
+}
+
+// ── Marketing ──────────────────────────────────────────────────────────────
+async function loadMarketing() {
+  const camps = await api('GET', '/api/marketing');
+  // Update KPIs
+  const tot = (f) => camps.reduce((s,c)=>s+(c[f]||0),0);
+  $('mkt-budget').textContent  = fmt(tot('budget'));
+  $('mkt-spent').textContent   = fmt(tot('spent'));
+  $('mkt-leads').textContent   = tot('leads').toLocaleString();
+  $('mkt-revenue').textContent = fmt(tot('revenue'));
+  const totalSpent = tot('spent'), totalRev = tot('revenue');
+  const avgRoi = totalSpent ? Math.round((totalRev-totalSpent)/totalSpent*100) : 0;
+  $('mkt-roi').textContent     = avgRoi + '%';
+  $('mkt-roi').style.color     = avgRoi >= 0 ? 'var(--income)' : 'var(--expense)';
+
+  if (grids.marketing) { grids.marketing.setGridOption('rowData', camps); return; }
+
+  const CHANNELS = ['Google Ads','Meta Ads','Instagram','Email','LinkedIn','TikTok','SEO','Content','Other'];
+  const colDefs = [
+    {field:'name', headerName:'Campaign', editable:true, flex:2},
+    {field:'channel', headerName:'Channel', editable:true, width:130,
+     cellEditor:'agSelectCellEditor', cellEditorParams:{values:CHANNELS}},
+    {field:'start_date', headerName:'Start', editable:true, width:110},
+    {field:'end_date',   headerName:'End',   editable:true, width:110},
+    {field:'budget', headerName:'Budget', editable:true, width:110, type:'rightAligned',
+     valueFormatter:p=>p.value!=null?fmt(p.value):''},
+    {field:'spent',  headerName:'Spent',  editable:true, width:110, type:'rightAligned',
+     valueFormatter:p=>p.value!=null?fmt(p.value):''},
+    {field:'clicks', headerName:'Clicks', editable:true, width:90, type:'rightAligned'},
+    {field:'leads',  headerName:'Leads',  editable:true, width:80, type:'rightAligned'},
+    {field:'revenue',headerName:'Revenue',editable:true, width:110, type:'rightAligned',
+     valueFormatter:p=>p.value!=null?fmt(p.value):''},
+    {field:'roi', headerName:'ROI', width:80, type:'rightAligned', editable:false,
+     valueFormatter:p=>p.value!=null?p.value+'%':'—',
+     cellClass:p=>p.value>=0?'amt-inc':'amt-exp'},
+    {field:'status', headerName:'Status', editable:true, width:100,
+     cellEditor:'agSelectCellEditor', cellEditorParams:{values:['active','paused','completed']},
+     cellRenderer:p=>`<span class="badge badge-${p.value==='active'?'active':p.value==='paused'?'warning':'draft'}">${p.value||'active'}</span>`},
+    {headerName:'', width:50, sortable:false,
+     cellRenderer:p=>`<button onclick="delCampaign(${p.data.id})" style="background:none;border:none;color:var(--expense);cursor:pointer;font-size:16px">×</button>`}
+  ];
+
+  grids.marketing = agGrid.createGrid($('marketingGrid'), {
+    columnDefs:colDefs, rowData:camps,
+    defaultColDef:{resizable:true, sortable:true, filter:true},
+    animateRows:true, pagination:true, paginationPageSize:50,
+    onCellValueChanged: async e => { if(e.data.id) await api('PUT',`/api/marketing/${e.data.id}`,e.data); }
+  });
+}
+
+async function addCampaign() {
+  const row = {name:'New Campaign', channel:'Google Ads', start_date:today(), end_date:'', budget:0, spent:0, impressions:0, clicks:0, leads:0, revenue:0, status:'active'};
+  const saved = await api('POST','/api/marketing',row);
+  grids.marketing && grids.marketing.applyTransaction({add:[saved]});
+}
+
+async function delCampaign(id) {
+  await api('DELETE',`/api/marketing/${id}`);
+  const rows=[];
+  grids.marketing && grids.marketing.forEachNode(n=>{if(n.data.id===id)rows.push(n.data);});
+  grids.marketing && grids.marketing.applyTransaction({remove:rows});
+}
+
+function exportMarketing() {
+  if (grids.marketing) grids.marketing.exportDataAsCsv({fileName:'booksai-marketing.csv'});
+}
+
+// ── AI Chat ────────────────────────────────────────────────────────────────
+function updateChips() {
+  const chips = MODULE_CHIPS[currentModule] || [];
+  $('aiChips').innerHTML = chips.map(c=>`<span class="chip" onclick="sendChat('${c}')">${c}</span>`).join('');
+}
+
+function addAIMessage(role, text) {
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  div.innerHTML = text.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
+  $('aiMessages').appendChild(div);
+  $('aiMessages').scrollTop = 9999;
+  return div;
+}
+
+async function sendChat(overrideMsg) {
+  const input = $('aiInput');
+  const msg = overrideMsg || input.value.trim();
+  if (!msg) return;
+  input.value = '';
+  addAIMessage('user', msg);
+  const typing = addAIMessage('assistant', '<span class="spinner"></span>');
+  try {
+    const res = await api('POST', '/chat', {message:msg, module:currentModule, history:chatHistory.slice(-12)});
+    typing.remove();
+    addAIMessage('assistant', res.reply || res.error || 'Sorry, something went wrong.');
+    if (res.reply) {
+      chatHistory.push({role:'user', content:msg});
+      chatHistory.push({role:'assistant', content:res.reply});
     }
-
-    document.getElementById('sendBtn').disabled = false;
+  } catch(e) {
+    typing.remove();
+    addAIMessage('assistant', 'Error: ' + e.message);
   }
+}
 
-  function addMessage(role, text, isTyping = false) {
-    const el   = document.createElement('div');
-    el.className = `msg ${role}${isTyping ? ' typing' : ''}`;
-    el.textContent = text;
-    const box  = document.getElementById('chatMessages');
-    box.appendChild(el);
-    box.scrollTop = box.scrollHeight;
-    return el;
-  }
+// ── Modals ─────────────────────────────────────────────────────────────────
+function closeModal(id) { $(id).classList.remove('open'); }
+document.querySelectorAll('.modal-bg').forEach(m => m.addEventListener('click', e => { if(e.target===m) m.classList.remove('open'); }));
 
-  function askSuggestion(el) {
-    document.getElementById('chatInput').value = el.textContent;
-    sendChat();
-  }
+// ── Init ───────────────────────────────────────────────────────────────────
+updateChips();
+loadDashboard();
 </script>
 </body>
 </html>
