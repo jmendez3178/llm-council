@@ -296,10 +296,13 @@
     <!-- Upload -->
     <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
       <div class="upload-icon">📂</div>
-      <div class="upload-label" id="uploadLabel">Drop your bank statement here</div>
-      <div class="upload-sub">CSV or Excel · Bank exports, QuickBooks, any format</div>
+      <div class="upload-label" id="uploadLabel">Drop your file here — clean or messy</div>
+      <div class="upload-sub">CSV or Excel · Any format · AI cleans it automatically</div>
       <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" />
     </div>
+
+    <!-- Clean Report Banner -->
+    <div id="cleanReport" style="display:none;margin:0 20px 4px;padding:10px 14px;background:rgba(46,204,113,.1);border:1px solid rgba(46,204,113,.3);border-radius:10px;font-size:12px;color:#2ecc71;line-height:1.6"></div>
 
     <!-- Summary Cards -->
     <div class="summary" id="summary" style="display:none">
@@ -398,20 +401,55 @@
   async function handleFile(file) {
     document.getElementById('uploadLabel').innerHTML =
       `<span class="spinner"></span> Reading ${file.name}…`;
+    document.getElementById('cleanReport').style.display = 'none';
 
     const fd = new FormData();
     fd.append('file', file);
 
     try {
+      // Step 1: Parse file
       const r    = await fetch('/upload', { method: 'POST', body: fd });
       const data = await r.json();
       if (!r.ok || data.error) throw new Error(data.error || 'Upload failed');
 
-      transactions = data.transactions;
-      categorized  = [];
+      const rawTransactions = data.transactions;
+      categorized = [];
+
+      // Step 2: Auto-clean with AI agent
+      document.getElementById('uploadLabel').innerHTML =
+        `<span class="spinner"></span> AI cleaning ${rawTransactions.length} rows…`;
+
+      const cleanRes  = await fetch('/clean', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transactions: rawTransactions }),
+      });
+      const cleanData = await cleanRes.json();
+
+      if (cleanData.success) {
+        transactions = cleanData.transactions;
+
+        // Show clean report
+        const removed   = cleanData.removed || 0;
+        const dataType  = cleanData.data_type || '';
+        const fields    = cleanData.fields_detected || {};
+        const issues    = cleanData.issues || [];
+        const reportEl  = document.getElementById('cleanReport');
+        reportEl.style.display = 'block';
+        reportEl.innerHTML = `
+          ✅ <strong>AI cleaned your data</strong> &nbsp;·&nbsp;
+          ${cleanData.original_count} rows → <strong>${cleanData.cleaned_count} clean records</strong>
+          ${removed > 0 ? ` &nbsp;·&nbsp; ${removed} duplicates/blanks removed` : ''}
+          ${dataType ? ` &nbsp;·&nbsp; Detected: ${dataType.replace(/_/g,' ')}` : ''}
+          ${issues.length ? `<br>⚠ Issues fixed: ${issues.slice(0,3).join(' · ')}` : ''}
+        `;
+      } else {
+        transactions = rawTransactions; // fallback to raw if clean fails
+      }
 
       zone.classList.add('has-file');
-      document.getElementById('uploadLabel').textContent = `✓ ${file.name} · ${transactions.length} transactions`;
+      document.getElementById('uploadLabel').textContent =
+        `✓ ${file.name} · ${transactions.length} transactions`;
       document.getElementById('summary').style.display = 'grid';
       document.getElementById('toolbar').style.display = 'flex';
       document.getElementById('txCount').textContent   = `${transactions.length} rows`;
@@ -420,6 +458,10 @@
 
       renderTable();
       updateSummary();
+
+      addMessage('assistant',
+        `✅ Your file is loaded and cleaned! I found ${transactions.length} valid transactions.${cleanData.removed > 0 ? ` Removed ${cleanData.removed} duplicates and blank rows.` : ''} Click **Auto-Categorize** to classify every transaction, or ask me anything.`
+      );
 
     } catch(e) {
       document.getElementById('uploadLabel').textContent = '⚠ ' + e.message;
@@ -494,7 +536,7 @@
       const data = await r.json();
       if (data.error) throw new Error(data.error);
 
-      categorized = data.categories;
+      categorized = data.categories || [];
       renderTable();
       updateSummary();
       document.getElementById('btnExport').disabled = false;

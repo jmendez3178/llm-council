@@ -97,6 +97,128 @@ def upload():
         return jsonify({'error': f'Error parsing file: {str(e)}'}), 500
 
 
+# ── AI Data Cleaning Agent ────────────────────────────────────────────────
+
+@app.route('/clean', methods=['POST'])
+def clean_data():
+    data = request.json or {}
+    raw_transactions = data.get('transactions', [])
+    if not raw_transactions:
+        return jsonify({'error': 'No data to clean'}), 400
+
+    # Send sample to Claude to understand the structure
+    sample = raw_transactions[:60]
+    sample_text = json.dumps(sample, indent=2)
+
+    analysis_prompt = f"""You are a data cleaning expert for financial/sales records.
+
+Analyze this raw business data sample and identify:
+1. Which field is the DATE
+2. Which field is the DESCRIPTION (product, category, merchant, item name)
+3. Which field is the AMOUNT (sales value, price, revenue, transaction amount)
+4. Any other useful fields (quantity, location, etc.)
+
+Data sample:
+{sample_text}
+
+Return ONLY valid JSON, no explanation:
+{{
+  "date_field": "exact_field_name or null",
+  "description_field": "exact_field_name",
+  "amount_field": "exact_field_name",
+  "extra_fields": ["field1", "field2"],
+  "issues": ["issue1", "issue2"],
+  "data_type": "bank_statement|sales_data|expenses|invoices|other"
+}}"""
+
+    try:
+        msg = get_client().messages.create(
+            model='claude-haiku-4-5',
+            max_tokens=400,
+            messages=[{'role': 'user', 'content': analysis_prompt}]
+        )
+        text = msg.content[0].text.strip()
+        s, e = text.find('{'), text.rfind('}') + 1
+        analysis = json.loads(text[s:e]) if s >= 0 and e > s else {}
+    except Exception as ex:
+        analysis = {}
+        print(f'Clean analysis error: {ex}')
+
+    date_field   = analysis.get('date_field')
+    desc_field   = analysis.get('description_field', '')
+    amount_field = analysis.get('amount_field', '')
+    issues       = analysis.get('issues', [])
+    data_type    = analysis.get('data_type', 'unknown')
+
+    # Fallback: use first fields if detection failed
+    if raw_transactions:
+        keys = list(raw_transactions[0].keys())
+        if not date_field   and len(keys) > 0: date_field   = keys[0]
+        if not desc_field   and len(keys) > 1: desc_field   = keys[1]
+        if not amount_field and len(keys) > 2: amount_field = keys[2]
+
+    cleaned = []
+    seen    = set()
+    skipped = 0
+
+    for t in raw_transactions:
+        date   = str(t.get(date_field,   '') if date_field   else '').strip()
+        desc   = str(t.get(desc_field,   '') if desc_field   else '').strip()
+        amount = str(t.get(amount_field, '') if amount_field else '').strip()
+
+        # Drop empty descriptions
+        if not desc or desc.lower() in ('nan', 'none', '', 'null', 'n/a'):
+            skipped += 1
+            continue
+
+        # Clean amount — strip currency symbols, keep numeric value
+        amt_clean = amount.replace('$','').replace(',','').replace('£','').replace('€','').replace(' ','').strip()
+        try:
+            float(amt_clean)
+        except ValueError:
+            # Try to extract first number
+            import re
+            nums = re.findall(r'-?\d+\.?\d*', amt_clean)
+            if nums:
+                amt_clean = nums[0]
+            else:
+                skipped += 1
+                continue
+
+        # Skip zero-amount rows
+        if float(amt_clean) == 0:
+            skipped += 1
+            continue
+
+        # Deduplicate exact matches
+        key = f'{date}|{desc.lower()}|{amt_clean}'
+        if key in seen:
+            skipped += 1
+            continue
+        seen.add(key)
+
+        cleaned.append({
+            'date':        date if date and date.lower() not in ('nan','none','null') else 'N/A',
+            'description': desc,
+            'amount':      amt_clean,
+        })
+
+    return jsonify({
+        'success':        True,
+        'transactions':   cleaned,
+        'original_count': len(raw_transactions),
+        'cleaned_count':  len(cleaned),
+        'removed':        skipped,
+        'issues':         issues,
+        'data_type':      data_type,
+        'fields_detected': {
+            'date':   date_field,
+            'description': desc_field,
+            'amount': amount_field,
+        }
+    })
+
+
 # ── AI Categorization ──────────────────────────────────────────────────────
 
 @app.route('/categorize', methods=['POST'])
