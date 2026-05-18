@@ -274,8 +274,7 @@ textarea{resize:vertical;min-height:60px}
     <div class="module" id="mod-ledger">
       <div class="toolbar">
         <button class="btn btn-accent" onclick="addLedgerRow()">+ Add Row</button>
-        <button class="btn" onclick="document.getElementById('importFile').click()">📂 Import CSV / Excel</button>
-        <input type="file" id="importFile" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleImport(this)">
+
         <button class="btn" onclick="aiCategorizeLedger()">✨ AI Categorize</button>
         <div class="spacer"></div>
         <button class="btn" onclick="exportLedger()">📥 Export CSV</button>
@@ -429,7 +428,7 @@ textarea{resize:vertical;min-height:60px}
     <span class="ai-module-badge" id="ai-module-badge">Dashboard</span>
   </div>
   <div class="ai-messages" id="aiMessages">
-    <div class="msg assistant">👋 Hi! I'm BooksAI, your AI bookkeeper. Upload transactions via the Ledger, or ask me anything about your finances.</div>
+    <div class="msg assistant">👋 Hi! I'm BooksAI, your AI bookkeeper. Add transactions in the Ledger, or ask me anything about your finances.</div>
   </div>
   <div class="ai-chips" id="aiChips"></div>
   <div class="ai-input-row">
@@ -439,28 +438,6 @@ textarea{resize:vertical;min-height:60px}
     </button>
   </div>
 </aside>
-
-<!-- ── Import Modal ── -->
-<div class="modal-bg" id="importModal">
-  <div class="modal modal-wide">
-    <div class="modal-header">
-      <span class="modal-title">Import Preview</span>
-      <button class="modal-close" onclick="closeModal('importModal')">✕</button>
-    </div>
-    <div id="importStatus" style="font-size:12px;color:var(--muted);margin-bottom:10px"></div>
-    <div style="max-height:360px;overflow-y:auto">
-      <table class="tbl" id="importPreviewTable">
-        <thead><tr><th>Date</th><th>Description</th><th>Amount</th><th>Category</th><th>Type</th></tr></thead>
-        <tbody id="importPreviewBody"></tbody>
-      </table>
-    </div>
-    <div class="toolbar" style="margin-top:12px">
-      <button class="btn btn-accent" id="importConfirmBtn" onclick="confirmImport()">✅ Import All</button>
-      <button class="btn" onclick="closeModal('importModal')">Cancel</button>
-      <span id="importCount" style="font-size:12px;color:var(--muted);margin-left:8px"></span>
-    </div>
-  </div>
-</div>
 
 <!-- ── Add Employee Modal ── -->
 <div class="modal-bg" id="empModal">
@@ -526,8 +503,6 @@ let currentModule = 'dashboard';
 let chatHistory   = [];
 let grids         = {};
 let currentInvoiceId = null;
-let importRows    = [];
-let importCategorized = [];
 let chartPL, chartExp;
 const MODULE_TITLES = {
   dashboard:'Dashboard', ledger:'Ledger', pl:'P&L Statement',
@@ -703,66 +678,6 @@ function exportLedger() {
   if (grids.ledger) grids.ledger.exportDataAsCsv({fileName:'booksai-ledger.csv'});
 }
 
-// ── Import CSV Flow ────────────────────────────────────────────────────────
-async function handleImport(input) {
-  const file = input.files[0]; if (!file) return;
-  input.value = '';
-  $('importStatus').innerHTML = '<span class="spinner"></span> 🔍 Excel Agent analyzing structure…';
-  $('importModal').classList.add('open');
-  $('importPreviewBody').innerHTML = '';
-  $('importConfirmBtn').disabled = true;
-  $('importCount').textContent = '';
-
-  // Step 1: Upload
-  const fd = new FormData(); fd.append('file', file);
-  const up = await fetch('/upload', {method:'POST', body:fd}).then(r=>r.json());
-  if (!up.success) { $('importStatus').textContent = 'Upload failed: ' + up.error; return; }
-
-  // Step 2: AI Clean
-  $('importStatus').innerHTML = '<span class="spinner"></span> ✨ Cleaning ' + up.transactions.length + ' rows…';
-  const cl = await api('POST', '/clean', {transactions: up.transactions});
-  let cleanedRows = cl.success ? cl.transactions : up.transactions;
-
-  // Step 3: AI Categorize (chunked)
-  $('importStatus').innerHTML = '<span class="spinner"></span> Categorizing ' + cleanedRows.length + ' transactions…';
-  const BATCH = 80;
-  let allCats = [];
-  for (let b = 0; b < Math.ceil(cleanedRows.length / BATCH); b++) {
-    const offset = b * BATCH;
-    const slice  = cleanedRows.slice(offset, offset + BATCH);
-    const res = await api('POST', '/categorize', {transactions: slice, id_offset: offset});
-    allCats = allCats.concat(res.categories || []);
-  }
-
-  // Build catMap
-  const catMap = {};
-  allCats.forEach(c => { catMap[c.id] = c; });
-  importRows = cleanedRows.map((r, i) => {
-    const info = catMap[i+1] || {};
-    return {...r, category: info.category || 'Uncategorized', tx_type: info.type || (parseFloat(r.amount)>=0?'income':'expense')};
-  });
-
-  // Preview
-  $('importStatus').textContent = (cl.agent_notes ? '🤖 ' + cl.agent_notes : '') || `Ready to import ${importRows.length} transactions`;
-  $('importCount').textContent  = `${importRows.length} rows`;
-  $('importPreviewBody').innerHTML = importRows.slice(0, 50).map((r,i) => `<tr>
-    <td style="color:var(--muted)">${r.date}</td><td>${r.description}</td>
-    <td class="${r.tx_type==='income'?'amt-inc':'amt-exp'}">${fmt(parseFloat(r.amount))}</td>
-    <td><span style="font-size:11px;color:var(--muted)">${r.category}</span></td>
-    <td><span class="badge badge-${r.tx_type}">${r.tx_type}</span></td>
-  </tr>`).join('') + (importRows.length > 50 ? `<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:8px">…and ${importRows.length - 50} more rows</td></tr>` : '');
-  $('importConfirmBtn').disabled = false;
-}
-
-async function confirmImport() {
-  $('importConfirmBtn').disabled = true;
-  $('importConfirmBtn').innerHTML = '<span class="spinner"></span> Importing…';
-  const res = await api('POST', '/api/transactions/bulk', importRows);
-  closeModal('importModal');
-  await loadLedger();
-  if (currentModule === 'dashboard') await loadDashboard();
-  addAIMessage('assistant', `✅ Imported ${res.added} transactions successfully! Head to the Dashboard to see your updated P&L.`);
-}
 
 // ── AI Categorize Ledger ───────────────────────────────────────────────────
 async function aiCategorizeLedger() {
