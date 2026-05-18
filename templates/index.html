@@ -244,8 +244,10 @@ textarea{resize:vertical;min-height:60px}
     </div>
     <div class="topbar-spacer"></div>
     <span class="badge-beta">BETA</span>
-    <span style="font-size:12px;color:var(--muted)">BooksAI · Powered by Claude AI</span>
-    <button class="btn" onclick="openClearData()" style="margin-left:8px;border-color:var(--expense);color:var(--expense)">🗑 Clear All Data</button>
+    <span id="topbar-user" style="font-size:12px;color:var(--muted)">BooksAI · Powered by Claude AI</span>
+    <a id="adminLink" href="/admin" style="display:none;font-size:12px;color:var(--accent);text-decoration:none;margin-left:4px">⚙ Admin</a>
+    <button class="btn" onclick="openClearData()" style="margin-left:4px;border-color:var(--expense);color:var(--expense)">🗑 Clear All Data</button>
+    <a href="/logout" class="btn" style="border-color:var(--border);color:var(--muted)">Log Out</a>
   </div>
 
   <div class="content">
@@ -559,6 +561,10 @@ async function api(method, url, body) {
   const opts = {method, headers:{'Content-Type':'application/json'}};
   if (body !== undefined) opts.body = JSON.stringify(body);
   const r = await fetch(url, opts);
+  if (r.status === 401 || r.status === 403) {
+    window.location.href = '/login';
+    return {};
+  }
   return r.json();
 }
 
@@ -1227,8 +1233,14 @@ async function confirmClearData() {
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────
-updateChips();
-loadDashboard();
+(async () => {
+  const me = await fetch('/api/me').then(r => r.json()).catch(() => null);
+  if (!me || me.error) { window.location.href = '/login'; return; }
+  $('topbar-user').textContent = '👤 ' + (me.name || me.email);
+  if (me.is_admin) $('adminLink').style.display = 'inline';
+  updateChips();
+  loadDashboard();
+})();
 </script>
 </body>
 </html>

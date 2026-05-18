@@ -1,22 +1,50 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, session, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
-import anthropic, json, math, os, re
+from werkzeug.security import generate_password_hash, check_password_hash
+from functools import wraps
+import anthropic, json, math, os, re, secrets
 from datetime import datetime, date
 import calendar
 
 app = Flask(__name__)
 
-# ── Database ───────────────────────────────────────────────────────────────
+# ── Config ─────────────────────────────────────────────────────────────────
 db_dir = os.environ.get('DATA_DIR', os.path.dirname(os.path.abspath(__file__)))
-app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.join(db_dir, 'booksai.db')}"
+db_path = os.path.join(db_dir, 'booksai.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{db_path}"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.secret_key = os.environ.get('SECRET_KEY', secrets.token_hex(32))
 db = SQLAlchemy(app)
 
 
 # ── Models ─────────────────────────────────────────────────────────────────
 
+class User(db.Model):
+    id            = db.Column(db.Integer, primary_key=True)
+    email         = db.Column(db.String(120), unique=True, nullable=False)
+    name          = db.Column(db.String(100), default='')
+    password_hash = db.Column(db.String(200), nullable=False)
+    is_admin      = db.Column(db.Boolean, default=False)
+    plan          = db.Column(db.String(20), default='active')   # active | suspended
+    created_at    = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def set_password(self, pw):
+        self.password_hash = generate_password_hash(pw, method='pbkdf2:sha256')
+
+    def check_password(self, pw):
+        return check_password_hash(self.password_hash, pw)
+
+    def to_dict(self):
+        tx_count = Transaction.query.filter_by(user_id=self.id).count()
+        return {'id': self.id, 'email': self.email, 'name': self.name,
+                'is_admin': self.is_admin, 'plan': self.plan,
+                'created_at': self.created_at.strftime('%Y-%m-%d'),
+                'tx_count': tx_count}
+
+
 class Transaction(db.Model):
     id          = db.Column(db.Integer, primary_key=True)
+    user_id     = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     date        = db.Column(db.String(20), nullable=False)
     description = db.Column(db.String(300))
     amount      = db.Column(db.Float, nullable=False, default=0)
@@ -31,6 +59,7 @@ class Transaction(db.Model):
 
 class Invoice(db.Model):
     id           = db.Column(db.Integer, primary_key=True)
+    user_id      = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     number       = db.Column(db.String(50))
     client_name  = db.Column(db.String(200))
     client_email = db.Column(db.String(200))
@@ -68,6 +97,7 @@ class InvoiceItem(db.Model):
 
 class Expense(db.Model):
     id          = db.Column(db.Integer, primary_key=True)
+    user_id     = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     date        = db.Column(db.String(20))
     vendor      = db.Column(db.String(200))
     description = db.Column(db.String(300))
@@ -84,6 +114,7 @@ class Expense(db.Model):
 
 class Employee(db.Model):
     id         = db.Column(db.Integer, primary_key=True)
+    user_id    = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     name       = db.Column(db.String(200))
     title      = db.Column(db.String(200))
     email      = db.Column(db.String(200))
@@ -101,6 +132,7 @@ class Employee(db.Model):
 
 class PayrollRun(db.Model):
     id           = db.Column(db.Integer, primary_key=True)
+    user_id      = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     period_start = db.Column(db.String(20))
     period_end   = db.Column(db.String(20))
     pay_date     = db.Column(db.String(20))
@@ -118,6 +150,7 @@ class PayrollRun(db.Model):
 
 class MarketingCampaign(db.Model):
     id          = db.Column(db.Integer, primary_key=True)
+    user_id     = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     name        = db.Column(db.String(200))
     channel     = db.Column(db.String(100))
     start_date  = db.Column(db.String(20))
@@ -155,6 +188,38 @@ CATEGORIES = [
 INCOME_CATEGORIES = {'Revenue / Sales', 'Transfer'}
 
 
+# ── Auth helpers ───────────────────────────────────────────────────────────
+
+def login_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if 'user_id' not in session:
+            return jsonify({'error': 'Unauthorized'}), 401
+        user = User.query.get(session['user_id'])
+        if not user:
+            session.clear()
+            return jsonify({'error': 'Unauthorized'}), 401
+        if user.plan == 'suspended':
+            session.clear()
+            return jsonify({'error': 'Account suspended. Please contact support.'}), 403
+        return f(*args, **kwargs)
+    return decorated
+
+def admin_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if 'user_id' not in session:
+            return redirect(url_for('login_page'))
+        user = User.query.get(session['user_id'])
+        if not user or not user.is_admin:
+            return redirect(url_for('index'))
+        return f(*args, **kwargs)
+    return decorated
+
+def current_uid():
+    return session.get('user_id')
+
+
 # ── Anthropic client ───────────────────────────────────────────────────────
 
 def get_client():
@@ -172,9 +237,7 @@ EXCEL_TOOLS = [
         "description": "Get the first 8 non-empty values from a specific column.",
         "input_schema": {
             "type": "object",
-            "properties": {
-                "column_name": {"type": "string"}
-            },
+            "properties": {"column_name": {"type": "string"}},
             "required": ["column_name"]
         }
     },
@@ -243,26 +306,127 @@ def run_excel_agent(columns, sample_rows):
     return mapping, notes, issues, data_type
 
 
+# ── Auth routes ────────────────────────────────────────────────────────────
+
+@app.route('/login', methods=['GET', 'POST'])
+def login_page():
+    if request.method == 'GET':
+        if 'user_id' in session:
+            return redirect(url_for('index'))
+        return render_template('login.html')
+
+    data  = request.json or {}
+    email = data.get('email', '').strip().lower()
+    pw    = data.get('password', '')
+    user  = User.query.filter_by(email=email).first()
+
+    if not user or not user.check_password(pw):
+        return jsonify({'error': 'Invalid email or password'}), 401
+    if user.plan == 'suspended':
+        return jsonify({'error': 'Your account has been suspended. Please contact support.'}), 403
+
+    session['user_id'] = user.id
+    return jsonify({'ok': True, 'name': user.name, 'is_admin': user.is_admin})
+
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login_page'))
+
+
+@app.route('/api/me')
+def me():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not logged in'}), 401
+    u = User.query.get(session['user_id'])
+    if not u:
+        session.clear()
+        return jsonify({'error': 'Not logged in'}), 401
+    return jsonify({'id': u.id, 'name': u.name, 'email': u.email, 'is_admin': u.is_admin})
+
+
+# ── Admin routes ───────────────────────────────────────────────────────────
+
+@app.route('/admin')
+@admin_required
+def admin_page():
+    users = User.query.order_by(User.created_at.desc()).all()
+    return render_template('admin.html', users=[u.to_dict() for u in users])
+
+
+@app.route('/admin/users', methods=['POST'])
+@admin_required
+def admin_create_user():
+    d  = request.form
+    email = d.get('email', '').strip().lower()
+    name  = d.get('name', '').strip()
+    pw    = d.get('password', '').strip()
+    if not email or not pw:
+        return redirect(url_for('admin_page'))
+    if User.query.filter_by(email=email).first():
+        return redirect(url_for('admin_page'))
+    u = User(email=email, name=name, plan='active', is_admin=False)
+    u.set_password(pw)
+    db.session.add(u)
+    db.session.commit()
+    return redirect(url_for('admin_page'))
+
+
+@app.route('/admin/users/<int:uid>/suspend', methods=['POST'])
+@admin_required
+def admin_suspend_user(uid):
+    u = User.query.get_or_404(uid)
+    u.plan = 'suspended'
+    db.session.commit()
+    return redirect(url_for('admin_page'))
+
+
+@app.route('/admin/users/<int:uid>/activate', methods=['POST'])
+@admin_required
+def admin_activate_user(uid):
+    u = User.query.get_or_404(uid)
+    u.plan = 'active'
+    db.session.commit()
+    return redirect(url_for('admin_page'))
+
+
+@app.route('/admin/users/<int:uid>/delete', methods=['POST'])
+@admin_required
+def admin_delete_user(uid):
+    u = User.query.get_or_404(uid)
+    # Remove user's data first
+    for model in [InvoiceItem, Invoice, Transaction, Expense, Employee, PayrollRun, MarketingCampaign]:
+        if hasattr(model, 'user_id'):
+            model.query.filter_by(user_id=uid).delete()
+    db.session.delete(u)
+    db.session.commit()
+    return redirect(url_for('admin_page'))
+
+
 # ── Main route ─────────────────────────────────────────────────────────────
 
 @app.route('/')
 def index():
+    if 'user_id' not in session:
+        return redirect(url_for('login_page'))
     return render_template('index.html')
 
 
 # ── Dashboard ──────────────────────────────────────────────────────────────
 
 @app.route('/api/dashboard')
+@login_required
 def dashboard():
-    txns = Transaction.query.all()
+    uid  = current_uid()
+    txns = Transaction.query.filter_by(user_id=uid).all()
     income   = sum(abs(t.amount) for t in txns if t.tx_type == 'income')
     expenses = sum(abs(t.amount) for t in txns if t.tx_type == 'expense')
 
-    invoices     = Invoice.query.all()
+    invoices        = Invoice.query.filter_by(user_id=uid).all()
     inv_outstanding = sum(i.total for i in invoices if i.status in ('draft', 'sent'))
     inv_paid        = sum(i.total for i in invoices if i.status == 'paid')
 
-    # Monthly P&L — last 6 months
     today = date.today()
     monthly = []
     for i in range(5, -1, -1):
@@ -277,7 +441,6 @@ def dashboard():
             'expenses': round(sum(abs(t.amount) for t in mo_txns if t.tx_type == 'expense'), 2),
         })
 
-    # Top expense categories
     by_cat = {}
     for t in txns:
         if t.tx_type == 'expense':
@@ -301,12 +464,13 @@ def dashboard():
 # ── P&L Statement ──────────────────────────────────────────────────────────
 
 @app.route('/api/pl')
+@login_required
 def pl_statement():
-    txns = Transaction.query.all()
+    uid  = current_uid()
+    txns = Transaction.query.filter_by(user_id=uid).all()
 
     if txns:
-        # Span from the earliest transaction month to the current month
-        earliest = min(t.date[:7] for t in txns)   # 'YYYY-MM'
+        earliest = min(t.date[:7] for t in txns)
         today    = date.today()
         cur_yr, cur_mo = today.year, today.month
         ey, em = int(earliest[:4]), int(earliest[5:7])
@@ -320,7 +484,6 @@ def pl_statement():
                 mo_num = 1
                 yr += 1
     else:
-        # No data yet — fall back to current month only
         today = date.today()
         cols  = [{'label': today.strftime('%b %Y'), 'prefix': today.strftime('%Y-%m')}]
 
@@ -330,7 +493,7 @@ def pl_statement():
                           and t.date.startswith(c['prefix'])), 2)
                 for c in cols]
 
-    income_cats = sorted({t.category for t in txns if t.tx_type == 'income'})
+    income_cats  = sorted({t.category for t in txns if t.tx_type == 'income'})
     expense_cats = sorted({t.category for t in txns if t.tx_type == 'expense'})
 
     income_rows  = [{'category': c, 'months': month_amounts(c, 'income'),
@@ -357,15 +520,18 @@ def pl_statement():
 # ── Transactions ───────────────────────────────────────────────────────────
 
 @app.route('/api/transactions', methods=['GET'])
+@login_required
 def get_transactions():
-    txns = Transaction.query.order_by(Transaction.date.desc()).all()
+    txns = Transaction.query.filter_by(user_id=current_uid()).order_by(Transaction.date.desc()).all()
     return jsonify([t.to_dict() for t in txns])
 
 
 @app.route('/api/transactions', methods=['POST'])
+@login_required
 def create_transaction():
     d = request.json or {}
     t = Transaction(
+        user_id=current_uid(),
         date=d.get('date', date.today().isoformat()),
         description=d.get('description', ''),
         amount=float(d.get('amount', 0)),
@@ -378,8 +544,9 @@ def create_transaction():
 
 
 @app.route('/api/transactions/<int:tid>', methods=['PUT'])
+@login_required
 def update_transaction(tid):
-    t = Transaction.query.get_or_404(tid)
+    t = Transaction.query.filter_by(id=tid, user_id=current_uid()).first_or_404()
     d = request.json or {}
     for f in ('date', 'description', 'category', 'tx_type'):
         if f in d:
@@ -391,21 +558,25 @@ def update_transaction(tid):
 
 
 @app.route('/api/transactions/<int:tid>', methods=['DELETE'])
+@login_required
 def delete_transaction(tid):
-    t = Transaction.query.get_or_404(tid)
+    t = Transaction.query.filter_by(id=tid, user_id=current_uid()).first_or_404()
     db.session.delete(t)
     db.session.commit()
     return jsonify({'ok': True})
 
 
 @app.route('/api/transactions/bulk', methods=['POST'])
+@login_required
 def bulk_import_transactions():
-    rows = request.json or []
+    rows  = request.json or []
+    uid   = current_uid()
     added = 0
     for r in rows:
         try:
             amt = float(str(r.get('amount', 0)).replace('$', '').replace(',', ''))
             t = Transaction(
+                user_id=uid,
                 date=r.get('date', date.today().isoformat()),
                 description=r.get('description', ''),
                 amount=abs(amt),
@@ -423,15 +594,20 @@ def bulk_import_transactions():
 # ── Invoices ───────────────────────────────────────────────────────────────
 
 @app.route('/api/invoices', methods=['GET'])
+@login_required
 def get_invoices():
-    return jsonify([i.to_dict() for i in Invoice.query.order_by(Invoice.created_at.desc()).all()])
+    invs = Invoice.query.filter_by(user_id=current_uid()).order_by(Invoice.created_at.desc()).all()
+    return jsonify([i.to_dict() for i in invs])
 
 
 @app.route('/api/invoices', methods=['POST'])
+@login_required
 def create_invoice():
-    d = request.json or {}
-    count = Invoice.query.count() + 1
+    d   = request.json or {}
+    uid = current_uid()
+    count = Invoice.query.filter_by(user_id=uid).count() + 1
     inv = Invoice(
+        user_id=uid,
         number=d.get('number', f'INV-{count:03d}'),
         client_name=d.get('client_name', ''),
         client_email=d.get('client_email', ''),
@@ -456,8 +632,9 @@ def create_invoice():
 
 
 @app.route('/api/invoices/<int:iid>', methods=['PUT'])
+@login_required
 def update_invoice(iid):
-    inv = Invoice.query.get_or_404(iid)
+    inv = Invoice.query.filter_by(id=iid, user_id=current_uid()).first_or_404()
     d   = request.json or {}
     for f in ('client_name', 'client_email', 'date', 'due_date', 'status', 'notes'):
         if f in d:
@@ -480,8 +657,9 @@ def update_invoice(iid):
 
 
 @app.route('/api/invoices/<int:iid>', methods=['DELETE'])
+@login_required
 def delete_invoice(iid):
-    inv = Invoice.query.get_or_404(iid)
+    inv = Invoice.query.filter_by(id=iid, user_id=current_uid()).first_or_404()
     db.session.delete(inv)
     db.session.commit()
     return jsonify({'ok': True})
@@ -490,14 +668,18 @@ def delete_invoice(iid):
 # ── Expenses ───────────────────────────────────────────────────────────────
 
 @app.route('/api/expenses', methods=['GET'])
+@login_required
 def get_expenses():
-    return jsonify([e.to_dict() for e in Expense.query.order_by(Expense.date.desc()).all()])
+    exps = Expense.query.filter_by(user_id=current_uid()).order_by(Expense.date.desc()).all()
+    return jsonify([e.to_dict() for e in exps])
 
 
 @app.route('/api/expenses', methods=['POST'])
+@login_required
 def create_expense():
     d = request.json or {}
     e = Expense(
+        user_id=current_uid(),
         date=d.get('date', date.today().isoformat()),
         vendor=d.get('vendor', ''),
         description=d.get('description', ''),
@@ -511,8 +693,9 @@ def create_expense():
 
 
 @app.route('/api/expenses/<int:eid>', methods=['PUT'])
+@login_required
 def update_expense(eid):
-    e = Expense.query.get_or_404(eid)
+    e = Expense.query.filter_by(id=eid, user_id=current_uid()).first_or_404()
     d = request.json or {}
     for f in ('date', 'vendor', 'description', 'category', 'status'):
         if f in d:
@@ -524,8 +707,9 @@ def update_expense(eid):
 
 
 @app.route('/api/expenses/<int:eid>', methods=['DELETE'])
+@login_required
 def delete_expense(eid):
-    e = Expense.query.get_or_404(eid)
+    e = Expense.query.filter_by(id=eid, user_id=current_uid()).first_or_404()
     db.session.delete(e)
     db.session.commit()
     return jsonify({'ok': True})
@@ -534,14 +718,18 @@ def delete_expense(eid):
 # ── Employees ──────────────────────────────────────────────────────────────
 
 @app.route('/api/employees', methods=['GET'])
+@login_required
 def get_employees():
-    return jsonify([e.to_dict() for e in Employee.query.order_by(Employee.name).all()])
+    emps = Employee.query.filter_by(user_id=current_uid()).order_by(Employee.name).all()
+    return jsonify([e.to_dict() for e in emps])
 
 
 @app.route('/api/employees', methods=['POST'])
+@login_required
 def create_employee():
     d = request.json or {}
     e = Employee(
+        user_id=current_uid(),
         name=d.get('name', ''),
         title=d.get('title', ''),
         email=d.get('email', ''),
@@ -556,8 +744,9 @@ def create_employee():
 
 
 @app.route('/api/employees/<int:eid>', methods=['PUT'])
+@login_required
 def update_employee(eid):
-    e = Employee.query.get_or_404(eid)
+    e = Employee.query.filter_by(id=eid, user_id=current_uid()).first_or_404()
     d = request.json or {}
     for f in ('name', 'title', 'email', 'pay_type', 'start_date', 'status'):
         if f in d:
@@ -569,8 +758,9 @@ def update_employee(eid):
 
 
 @app.route('/api/employees/<int:eid>', methods=['DELETE'])
+@login_required
 def delete_employee(eid):
-    e = Employee.query.get_or_404(eid)
+    e = Employee.query.filter_by(id=eid, user_id=current_uid()).first_or_404()
     db.session.delete(e)
     db.session.commit()
     return jsonify({'ok': True})
@@ -579,18 +769,22 @@ def delete_employee(eid):
 # ── Payroll ────────────────────────────────────────────────────────────────
 
 @app.route('/api/payroll', methods=['GET'])
+@login_required
 def get_payroll():
-    runs = PayrollRun.query.order_by(PayrollRun.pay_date.desc()).all()
+    runs = PayrollRun.query.filter_by(user_id=current_uid()).order_by(PayrollRun.pay_date.desc()).all()
     return jsonify([r.to_dict() for r in runs])
 
 
 @app.route('/api/payroll', methods=['POST'])
+@login_required
 def create_payroll_run():
-    d = request.json or {}
-    employees = Employee.query.filter_by(status='active').all()
+    d   = request.json or {}
+    uid = current_uid()
+    employees   = Employee.query.filter_by(user_id=uid, status='active').all()
     total_gross = sum(e.pay_rate for e in employees)
-    total_net   = round(total_gross * 0.75, 2)  # rough 25% deductions estimate
+    total_net   = round(total_gross * 0.75, 2)
     run = PayrollRun(
+        user_id=uid,
         period_start=d.get('period_start', ''),
         period_end=d.get('period_end', ''),
         pay_date=d.get('pay_date', date.today().isoformat()),
@@ -604,8 +798,9 @@ def create_payroll_run():
 
 
 @app.route('/api/payroll/<int:rid>', methods=['PUT'])
+@login_required
 def update_payroll_run(rid):
-    r = PayrollRun.query.get_or_404(rid)
+    r = PayrollRun.query.filter_by(id=rid, user_id=current_uid()).first_or_404()
     d = request.json or {}
     for f in ('period_start', 'period_end', 'pay_date', 'status'):
         if f in d:
@@ -617,14 +812,18 @@ def update_payroll_run(rid):
 # ── Marketing ──────────────────────────────────────────────────────────────
 
 @app.route('/api/marketing', methods=['GET'])
+@login_required
 def get_marketing():
-    return jsonify([c.to_dict() for c in MarketingCampaign.query.order_by(MarketingCampaign.created_at.desc()).all()])
+    camps = MarketingCampaign.query.filter_by(user_id=current_uid()).order_by(MarketingCampaign.created_at.desc()).all()
+    return jsonify([c.to_dict() for c in camps])
 
 
 @app.route('/api/marketing', methods=['POST'])
+@login_required
 def create_campaign():
     d = request.json or {}
     c = MarketingCampaign(
+        user_id=current_uid(),
         name=d.get('name', ''),
         channel=d.get('channel', ''),
         start_date=d.get('start_date', date.today().isoformat()),
@@ -643,8 +842,9 @@ def create_campaign():
 
 
 @app.route('/api/marketing/<int:cid>', methods=['PUT'])
+@login_required
 def update_campaign(cid):
-    c = MarketingCampaign.query.get_or_404(cid)
+    c = MarketingCampaign.query.filter_by(id=cid, user_id=current_uid()).first_or_404()
     d = request.json or {}
     for f in ('name', 'channel', 'start_date', 'end_date', 'status'):
         if f in d:
@@ -660,8 +860,9 @@ def update_campaign(cid):
 
 
 @app.route('/api/marketing/<int:cid>', methods=['DELETE'])
+@login_required
 def delete_campaign(cid):
-    c = MarketingCampaign.query.get_or_404(cid)
+    c = MarketingCampaign.query.filter_by(id=cid, user_id=current_uid()).first_or_404()
     db.session.delete(c)
     db.session.commit()
     return jsonify({'ok': True})
@@ -670,9 +871,15 @@ def delete_campaign(cid):
 # ── Clear All Data ─────────────────────────────────────────────────────────
 
 @app.route('/api/data/all', methods=['DELETE'])
+@login_required
 def clear_all_data():
+    uid = current_uid()
     for model in [InvoiceItem, Invoice, Transaction, Expense, Employee, PayrollRun, MarketingCampaign]:
-        model.query.delete()
+        if hasattr(model, 'user_id'):
+            model.query.filter_by(user_id=uid).delete()
+        else:
+            # InvoiceItem has no user_id; delete via invoices already handled by cascade
+            pass
     db.session.commit()
     return jsonify({'ok': True, 'message': 'All data cleared.'})
 
@@ -682,6 +889,7 @@ def clear_all_data():
 import pandas as pd
 
 @app.route('/upload', methods=['POST'])
+@login_required
 def upload():
     if 'file' not in request.files:
         return jsonify({'error': 'No file uploaded'}), 400
@@ -732,6 +940,7 @@ def upload():
 # ── AI Clean ───────────────────────────────────────────────────────────────
 
 @app.route('/clean', methods=['POST'])
+@login_required
 def clean_data():
     data             = request.json or {}
     raw_transactions = data.get('transactions', [])
@@ -759,9 +968,9 @@ def clean_data():
 
     cleaned, seen, skipped = [], set(), 0
     for t in raw_transactions:
-        date   = str(t.get(date_field,   '') if date_field   else '').strip()
-        desc   = str(t.get(desc_field,   '') if desc_field   else '').strip()
-        amount = str(t.get(amount_field, '') if amount_field else '').strip()
+        date_val = str(t.get(date_field,   '') if date_field   else '').strip()
+        desc     = str(t.get(desc_field,   '') if desc_field   else '').strip()
+        amount   = str(t.get(amount_field, '') if amount_field else '').strip()
 
         if not desc or desc.lower() in ('nan', 'none', '', 'null', 'n/a'):
             skipped += 1; continue
@@ -779,13 +988,13 @@ def clean_data():
         if math.isnan(val) or val == 0:
             skipped += 1; continue
 
-        key = f'{date}|{desc.lower()}|{amt_clean}'
+        key = f'{date_val}|{desc.lower()}|{amt_clean}'
         if key in seen:
             skipped += 1; continue
         seen.add(key)
 
         cleaned.append({
-            'date':        date if date and date.lower() not in ('nan','none','null') else 'N/A',
+            'date':        date_val if date_val and date_val.lower() not in ('nan','none','null') else 'N/A',
             'description': desc,
             'amount':      amt_clean,
         })
@@ -800,6 +1009,7 @@ def clean_data():
 # ── AI Categorize ──────────────────────────────────────────────────────────
 
 @app.route('/categorize', methods=['POST'])
+@login_required
 def categorize():
     data         = request.json or {}
     transactions = data.get('transactions', [])
@@ -842,6 +1052,7 @@ JSON:"""
 # ── AI Chat ────────────────────────────────────────────────────────────────
 
 @app.route('/chat', methods=['POST'])
+@login_required
 def chat():
     data    = request.json or {}
     message = data.get('message', '').strip()
@@ -875,7 +1086,8 @@ Current module: {module}
 # ── Context builder ────────────────────────────────────────────────────────
 
 def build_db_context(module='dashboard'):
-    txns = Transaction.query.all()
+    uid  = current_uid()
+    txns = Transaction.query.filter_by(user_id=uid).all()
     if not txns:
         return 'No transactions recorded yet.'
 
@@ -896,16 +1108,16 @@ def build_db_context(module='dashboard'):
         lines.append(f'  {cat}: ${amt:,.2f}')
 
     if module == 'invoices':
-        invs = Invoice.query.all()
+        invs = Invoice.query.filter_by(user_id=uid).all()
         lines += ['', f'Invoices: {len(invs)} total',
                   f'  Outstanding: ${sum(i.total for i in invs if i.status in ("draft","sent")):,.2f}',
                   f'  Paid: ${sum(i.total for i in invs if i.status=="paid"):,.2f}']
     elif module == 'payroll':
-        emps = Employee.query.filter_by(status='active').all()
+        emps = Employee.query.filter_by(user_id=uid, status='active').all()
         lines += ['', f'Active Employees: {len(emps)}',
                   f'  Total Monthly Payroll: ${sum(e.pay_rate for e in emps):,.2f}']
     elif module == 'marketing':
-        camps = MarketingCampaign.query.all()
+        camps = MarketingCampaign.query.filter_by(user_id=uid).all()
         lines += ['', f'Marketing Campaigns: {len(camps)}',
                   f'  Total Spend: ${sum(c.spent for c in camps):,.2f}',
                   f'  Total Revenue: ${sum(c.revenue for c in camps):,.2f}']
@@ -922,6 +1134,27 @@ def build_db_context(module='dashboard'):
 
 with app.app_context():
     db.create_all()
+
+    # SQLite migration: add user_id columns to existing tables
+    import sqlite3
+    conn = sqlite3.connect(db_path)
+    for tbl in ['transaction', 'invoice', 'expense', 'employee', 'payroll_run', 'marketing_campaign']:
+        try:
+            conn.execute(f'ALTER TABLE "{tbl}" ADD COLUMN user_id INTEGER')
+        except Exception:
+            pass  # column already exists
+    conn.commit()
+    conn.close()
+
+    # Bootstrap admin account from env vars if no users exist
+    if User.query.count() == 0:
+        admin_email = os.environ.get('ADMIN_EMAIL', 'admin@booksai.app')
+        admin_pw    = os.environ.get('ADMIN_PASSWORD', 'changeme123')
+        admin       = User(email=admin_email, name='Admin', is_admin=True, plan='active')
+        admin.set_password(admin_pw)
+        db.session.add(admin)
+        db.session.commit()
+        print(f'[BooksAI] Admin account created: {admin_email}')
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False)
