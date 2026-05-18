@@ -667,6 +667,16 @@ def delete_campaign(cid):
     return jsonify({'ok': True})
 
 
+# ── Clear All Data ─────────────────────────────────────────────────────────
+
+@app.route('/api/data/all', methods=['DELETE'])
+def clear_all_data():
+    for model in [InvoiceItem, Invoice, Transaction, Expense, Employee, PayrollRun, MarketingCampaign]:
+        model.query.delete()
+    db.session.commit()
+    return jsonify({'ok': True, 'message': 'All data cleared.'})
+
+
 # ── File Upload & Parsing ──────────────────────────────────────────────────
 
 import pandas as pd

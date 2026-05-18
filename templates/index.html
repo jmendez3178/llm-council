@@ -245,6 +245,7 @@ textarea{resize:vertical;min-height:60px}
     <div class="topbar-spacer"></div>
     <span class="badge-beta">BETA</span>
     <span style="font-size:12px;color:var(--muted)">BooksAI · Powered by Claude AI</span>
+    <button class="btn" onclick="openClearData()" style="margin-left:8px;border-color:var(--expense);color:var(--expense)">🗑 Clear All Data</button>
   </div>
 
   <div class="content">
@@ -499,6 +500,19 @@ textarea{resize:vertical;min-height:60px}
     <div class="toolbar" style="margin-top:12px">
       <button class="btn btn-accent" onclick="runPayroll()">▶ Process Payroll</button>
       <button class="btn" onclick="closeModal('payrollModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="clearModal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header"><span class="modal-title" style="color:var(--expense)">⚠ Clear All Data</span><button class="modal-close" onclick="closeModal('clearModal')">✕</button></div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px">This will permanently delete <strong style="color:var(--text)">all transactions, invoices, expenses, employees, payroll runs, and marketing campaigns</strong>. This cannot be undone.</p>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:8px">Type <strong style="color:var(--text)">CLEAR</strong> to confirm:</p>
+    <input id="clearConfirmInput" type="text" placeholder="Type CLEAR here" style="width:100%;margin-bottom:16px" oninput="$('clearBtn').disabled=this.value!=='CLEAR'">
+    <div class="toolbar">
+      <button id="clearBtn" class="btn" disabled onclick="confirmClearData()" style="border-color:var(--expense);color:var(--expense)">🗑 Delete Everything</button>
+      <button class="btn" onclick="closeModal('clearModal')">Cancel</button>
     </div>
   </div>
 </div>
@@ -1189,6 +1203,28 @@ async function sendChat(overrideMsg) {
 // ── Modals ─────────────────────────────────────────────────────────────────
 function closeModal(id) { $(id).classList.remove('open'); }
 document.querySelectorAll('.modal-bg').forEach(m => m.addEventListener('click', e => { if(e.target===m) m.classList.remove('open'); }));
+
+function openClearData() {
+  $('clearConfirmInput').value = '';
+  $('clearBtn').disabled = true;
+  $('clearModal').classList.add('open');
+}
+
+async function confirmClearData() {
+  if ($('clearConfirmInput').value !== 'CLEAR') return;
+  $('clearBtn').textContent = 'Clearing…';
+  $('clearBtn').disabled = true;
+  await api('DELETE', '/api/data/all');
+  closeModal('clearModal');
+  // Reload whichever module is active + dashboard
+  if (grids.ledger)    { grids.ledger.setRowData([]); }
+  if (grids.expenses)  { grids.expenses.setRowData([]); }
+  if (grids.employees) { grids.employees.setRowData([]); }
+  if (grids.marketing) { grids.marketing.setRowData([]); }
+  await loadDashboard();
+  if (currentModule !== 'dashboard') await navigate(currentModule);
+  $('clearBtn').textContent = '🗑 Delete Everything';
+}
 
 // ── Init ───────────────────────────────────────────────────────────────────
 updateChips();
