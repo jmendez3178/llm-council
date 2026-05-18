@@ -415,9 +415,9 @@
       const rawTransactions = data.transactions;
       categorized = [];
 
-      // Step 2: Auto-clean with AI agent
+      // Step 2: Auto-clean with Excel Intelligence Agent
       document.getElementById('uploadLabel').innerHTML =
-        `<span class="spinner"></span> AI cleaning ${rawTransactions.length} rows…`;
+        `<span class="spinner"></span> 🔍 Excel Agent analyzing structure…`;
 
       const cleanRes  = await fetch('/clean', {
         method: 'POST',
@@ -436,12 +436,14 @@
         const issues    = cleanData.issues || [];
         const reportEl  = document.getElementById('cleanReport');
         reportEl.style.display = 'block';
+        const agentNotes = cleanData.agent_notes || '';
         reportEl.innerHTML = `
           ✅ <strong>AI cleaned your data</strong> &nbsp;·&nbsp;
           ${cleanData.original_count} rows → <strong>${cleanData.cleaned_count} clean records</strong>
           ${removed > 0 ? ` &nbsp;·&nbsp; ${removed} duplicates/blanks removed` : ''}
           ${dataType ? ` &nbsp;·&nbsp; Detected: ${dataType.replace(/_/g,' ')}` : ''}
           ${issues.length ? `<br>⚠ Issues fixed: ${issues.slice(0,3).join(' · ')}` : ''}
+          ${agentNotes ? `<br>🤖 <em>${agentNotes}</em>` : ''}
         `;
       } else {
         transactions = rawTransactions; // fallback to raw if clean fails
@@ -460,7 +462,7 @@
       updateSummary();
 
       addMessage('assistant',
-        `✅ Your file is loaded and cleaned! I found ${transactions.length} valid transactions.${cleanData.removed > 0 ? ` Removed ${cleanData.removed} duplicates and blank rows.` : ''} Click **Auto-Categorize** to classify every transaction, or ask me anything.`
+        `✅ Your file is loaded and cleaned! The Excel Agent analyzed your column structure and found ${transactions.length} valid transactions.${cleanData.removed > 0 ? ` Removed ${cleanData.removed} duplicates and blank rows.` : ''}${cleanData.agent_notes ? ` 🤖 ${cleanData.agent_notes}` : ''} Click **Auto-Categorize** to classify every transaction, or ask me anything.`
       );
 
     } catch(e) {
