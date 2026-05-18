@@ -5,7 +5,12 @@ import json
 import os
 
 app = Flask(__name__)
-client = anthropic.Anthropic(api_key=os.environ.get('ANTHROPIC_API_KEY', ''))
+
+def get_client():
+    key = os.environ.get('ANTHROPIC_API_KEY', '').strip()
+    if not key:
+        raise ValueError('ANTHROPIC_API_KEY is not set. Add it in Railway → Variables.')
+    return anthropic.Anthropic(api_key=key)
 
 CATEGORIES = [
     'Revenue / Sales',
@@ -57,19 +62,19 @@ def upload():
         col_map = {}
         for col in df.columns:
             cl = col.lower()
-            if not col_map.get('date') and any(x in cl for x in ['date', 'posted', 'trans']):
+            if not col_map.get('date') and any(x in cl for x in ['date', 'posted', 'time', 'period']):
                 col_map['date'] = col
-            elif not col_map.get('description') and any(x in cl for x in ['desc', 'merchant', 'payee', 'name', 'memo', 'detail', 'narr']):
+            if not col_map.get('description') and any(x in cl for x in ['desc', 'merchant', 'payee', 'name', 'memo', 'detail', 'narr', 'product', 'item', 'category', 'type', 'note']):
                 col_map['description'] = col
-            elif not col_map.get('amount') and any(x in cl for x in ['amount', 'debit', 'credit', 'sum', 'total', 'value']):
+            if not col_map.get('amount') and any(x in cl for x in ['amount', 'debit', 'credit', 'sum', 'total', 'value', 'price', 'sale', 'revenue', 'cost', 'profit']):
                 col_map['amount'] = col
 
         # Fall back to positional if detection fails
         cols = df.columns.tolist()
-        if len(cols) >= 3:
+        if len(cols) >= 2:
             col_map.setdefault('date',        cols[0])
             col_map.setdefault('description', cols[1])
-            col_map.setdefault('amount',      cols[2])
+            col_map.setdefault('amount',      cols[2] if len(cols) > 2 else cols[1])
 
         transactions = []
         for _, row in df.iterrows():
@@ -125,7 +130,7 @@ Transactions:
 JSON:"""
 
         try:
-            msg = client.messages.create(
+            msg = get_client().messages.create(
                 model='claude-3-5-haiku-20241022',
                 max_tokens=4096,
                 messages=[{'role': 'user', 'content': prompt}]
@@ -167,7 +172,7 @@ Always format currency as USD with $ and commas. Keep responses concise and acti
     messages.append({'role': 'user', 'content': message})
 
     try:
-        resp = client.messages.create(
+        resp = get_client().messages.create(
             model='claude-3-5-sonnet-20241022',
             max_tokens=1024,
             system=system,
