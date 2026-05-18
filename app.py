@@ -302,16 +302,27 @@ def dashboard():
 
 @app.route('/api/pl')
 def pl_statement():
-    months_back = int(request.args.get('months', 12))
-    today = date.today()
-    cols  = []
-    for i in range(months_back - 1, -1, -1):
-        yr     = today.year + (today.month - 1 - i) // 12
-        mo_num = (today.month - 1 - i) % 12 + 1
-        mo     = date(yr, mo_num, 1)
-        cols.append({'label': mo.strftime('%b %Y'), 'prefix': mo.strftime('%Y-%m')})
-
     txns = Transaction.query.all()
+
+    if txns:
+        # Span from the earliest transaction month to the current month
+        earliest = min(t.date[:7] for t in txns)   # 'YYYY-MM'
+        today    = date.today()
+        cur_yr, cur_mo = today.year, today.month
+        ey, em = int(earliest[:4]), int(earliest[5:7])
+        cols = []
+        yr, mo_num = ey, em
+        while (yr, mo_num) <= (cur_yr, cur_mo):
+            mo = date(yr, mo_num, 1)
+            cols.append({'label': mo.strftime('%b %Y'), 'prefix': mo.strftime('%Y-%m')})
+            mo_num += 1
+            if mo_num > 12:
+                mo_num = 1
+                yr += 1
+    else:
+        # No data yet — fall back to current month only
+        today = date.today()
+        cols  = [{'label': today.strftime('%b %Y'), 'prefix': today.strftime('%Y-%m')}]
 
     def month_amounts(cat, tx_type):
         return [round(sum(abs(t.amount) for t in txns
