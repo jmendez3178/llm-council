@@ -287,9 +287,10 @@ textarea{resize:vertical;min-height:60px}
       <div class="pl-controls">
         <label style="font-size:13px;color:var(--muted)">Period:</label>
         <select id="plMonths" onchange="loadPL()" style="width:160px">
-          <option value="3">Last 3 months</option>
-          <option value="6" selected>Last 6 months</option>
+          <option value="all" selected>All Time</option>
           <option value="12">Last 12 months</option>
+          <option value="6">Last 6 months</option>
+          <option value="3">Last 3 months</option>
         </select>
         <div class="spacer"></div>
         <button class="btn" onclick="window.print()">🖨 Print</button>
@@ -769,7 +770,8 @@ async function aiCategorizeLedger() {
 // ── P&L ────────────────────────────────────────────────────────────────────
 async function loadPL() {
   const months = $('plMonths').value;
-  const d = await api('GET', `/api/pl?months=${months}`);
+  const url = months === 'all' ? '/api/pl' : `/api/pl?months=${months}`;
+  const d = await api('GET', url);
   const cols = d.columns;
   const fmtNum = n => n ? fmt(n) : '<span style="color:var(--border)">—</span>';
 
