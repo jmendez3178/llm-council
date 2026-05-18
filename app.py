@@ -131,7 +131,7 @@ JSON:"""
 
         try:
             msg = get_client().messages.create(
-                model='claude-3-5-haiku-20241022',
+                model='claude-haiku-4-5',
                 max_tokens=4096,
                 messages=[{'role': 'user', 'content': prompt}]
             )
@@ -173,7 +173,7 @@ Always format currency as USD with $ and commas. Keep responses concise and acti
 
     try:
         resp = get_client().messages.create(
-            model='claude-3-5-sonnet-20241022',
+            model='claude-sonnet-4-5',
             max_tokens=1024,
             system=system,
             messages=messages,
