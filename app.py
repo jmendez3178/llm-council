@@ -225,46 +225,47 @@ Return ONLY valid JSON, no explanation:
 def categorize():
     data         = request.json or {}
     transactions = data.get('transactions', [])
+    id_offset    = int(data.get('id_offset', 0))
     if not transactions:
         return jsonify({'error': 'No transactions'}), 400
 
-    results = []
-    batch_size = 80
+    tx_text = '\n'.join(
+        f"{id_offset + i + 1}. {t['date']} | {t['description']} | {t['amount']}"
+        for i, t in enumerate(transactions)
+    )
 
-    for batch_start in range(0, len(transactions), batch_size):
-        batch = transactions[batch_start:batch_start + batch_size]
-        tx_text = '\n'.join(
-            f"{batch_start + i + 1}. {t['date']} | {t['description']} | {t['amount']}"
-            for i, t in enumerate(batch)
-        )
-
-        prompt = f"""You are an expert bookkeeper. Categorize each transaction into exactly one of:
+    prompt = f"""You are an expert bookkeeper. Categorize each transaction into exactly one of:
 {', '.join(CATEGORIES)}
 
 Reply with ONLY a valid JSON array — no explanation, no markdown:
 [{{"id": 1, "category": "Revenue / Sales", "type": "income"}}, ...]
 
 "type" must be "income" or "expense".
+IDs in your response must match the numbers in the list below exactly.
 
 Transactions:
 {tx_text}
 
 JSON:"""
 
-        try:
-            msg = get_client().messages.create(
-                model='claude-haiku-4-5',
-                max_tokens=4096,
-                messages=[{'role': 'user', 'content': prompt}]
-            )
-            text = msg.content[0].text.strip()
-            s, e = text.find('['), text.rfind(']') + 1
-            if s >= 0 and e > s:
-                results.extend(json.loads(text[s:e]))
-        except Exception as ex:
-            print(f'Categorize error: {ex}')
-
-    return jsonify({'success': True, 'categories': results})
+    try:
+        msg = get_client().messages.create(
+            model='claude-haiku-4-5',
+            max_tokens=4096,
+            messages=[{'role': 'user', 'content': prompt}]
+        )
+        text = msg.content[0].text.strip()
+        s, e = text.find('['), text.rfind(']') + 1
+        if s >= 0 and e > s:
+            parsed = json.loads(text[s:e])
+            # Offset IDs so they match global transaction indices
+            for item in parsed:
+                item['id'] = id_offset + item['id']
+            return jsonify({'success': True, 'categories': parsed})
+        return jsonify({'success': True, 'categories': []})
+    except Exception as ex:
+        print(f'Categorize error: {ex}')
+        return jsonify({'error': str(ex)}), 500
 
 
 # ── AI Chat ────────────────────────────────────────────────────────────────

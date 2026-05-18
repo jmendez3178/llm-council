@@ -525,18 +525,32 @@
     if (!transactions.length) return;
     const btn = document.getElementById('btnCategorize');
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Categorizing…';
+
+    const BATCH   = 80;
+    const total   = transactions.length;
+    const chunks  = Math.ceil(total / BATCH);
+    let allCats   = [];
 
     try {
-      const r    = await fetch('/categorize', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ transactions }),
-      });
-      const data = await r.json();
-      if (data.error) throw new Error(data.error);
+      for (let b = 0; b < chunks; b++) {
+        const offset = b * BATCH;
+        const slice  = transactions.slice(offset, offset + BATCH);
+        const done   = Math.min(offset + BATCH, total);
 
-      categorized = data.categories || [];
+        btn.innerHTML = `<span class="spinner"></span> Categorizing ${done} / ${total}…`;
+
+        const r    = await fetch('/categorize', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ transactions: slice, id_offset: offset }),
+        });
+        const data = await r.json();
+        if (!r.ok || data.error) throw new Error(data.error || 'Categorize failed');
+
+        allCats = allCats.concat(data.categories || []);
+      }
+
+      categorized = allCats;
       renderTable();
       updateSummary();
       document.getElementById('btnExport').disabled = false;
@@ -548,7 +562,7 @@
     } catch(e) {
       btn.innerHTML = '✨ Auto-Categorize';
       btn.disabled  = false;
-      addMessage('assistant', `Sorry, I ran into an error: ${e.message}`);
+      addMessage('assistant', `Sorry, categorization failed: ${e.message}`);
     }
   }
 
