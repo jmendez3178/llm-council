@@ -297,6 +297,23 @@ textarea{resize:vertical;min-height:64px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:#D1D5DB;border-radius:10px}
 ::-webkit-scrollbar-thumb:hover{background:#9CA3AF}
+/* ── Mobile responsive ──────────────────────────────────── */
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .main { margin-left: 0 !important; }
+  .topbar { padding: 8px 12px; }
+  .topbar h1 { font-size: 14px; }
+  .stats-grid { grid-template-columns: 1fr 1fr !important; }
+  .card { padding: 12px !important; }
+  table { font-size: 12px; }
+  table th, table td { padding: 6px 8px !important; }
+  .btn { padding: 6px 10px; font-size: 12px; }
+  input, select, textarea { font-size: 16px; } /* prevent iOS zoom */
+}
+@media (max-width: 480px) {
+  .stats-grid { grid-template-columns: 1fr !important; }
+  .topbar-right { gap: 8px; }
+}
 </style>
 </head>
 <body>
@@ -691,23 +708,23 @@ textarea{resize:vertical;min-height:64px}
       </div>
     </div>
 
-    <!-- Payroll Analytics (imported CSV data) -->
-    <div id="payroll-analytics-section" style="display:none">
+    <!-- Payroll Analytics (imported CSV data) — duplicate section removed; see payroll-analytics-tab above -->
+    <div id="payroll-analytics-section-legacy" style="display:none">
       <!-- KPI row -->
-      <div class="kpi-row" id="pr-kpi-row">
-        <div class="kpi-card"><div class="kpi-icon teal">📋</div><div class="kpi-label">Total Records</div><div class="kpi-val" id="pr-kpi-records">—</div><div class="kpi-sub">Imported rows</div></div>
-        <div class="kpi-card"><div class="kpi-icon green">💰</div><div class="kpi-label">Total Pay</div><div class="kpi-val income" id="pr-kpi-pay">—</div><div class="kpi-sub">All records</div></div>
-        <div class="kpi-card"><div class="kpi-icon amber">⏰</div><div class="kpi-label">Total Overtime</div><div class="kpi-val warn" id="pr-kpi-ot">—</div><div class="kpi-sub">OT pay</div></div>
-        <div class="kpi-card"><div class="kpi-icon red">📊</div><div class="kpi-label">Avg Pay / Record</div><div class="kpi-val" id="pr-kpi-avg">—</div><div class="kpi-sub">Mean pay</div></div>
+      <div class="kpi-row" id="pr-kpi-row-legacy">
+        <div class="kpi-card"><div class="kpi-icon teal">📋</div><div class="kpi-label">Total Records</div><div class="kpi-val" id="pr-kpi-records-legacy">—</div><div class="kpi-sub">Imported rows</div></div>
+        <div class="kpi-card"><div class="kpi-icon green">💰</div><div class="kpi-label">Total Pay</div><div class="kpi-val income" id="pr-kpi-pay-legacy">—</div><div class="kpi-sub">All records</div></div>
+        <div class="kpi-card"><div class="kpi-icon amber">⏰</div><div class="kpi-label">Total Overtime</div><div class="kpi-val warn" id="pr-kpi-ot-legacy">—</div><div class="kpi-sub">OT pay</div></div>
+        <div class="kpi-card"><div class="kpi-icon red">📊</div><div class="kpi-label">Avg Pay / Record</div><div class="kpi-val" id="pr-kpi-avg-legacy">—</div><div class="kpi-sub">Mean pay</div></div>
       </div>
       <!-- Charts row -->
       <div class="charts-row" style="margin-bottom:16px">
-        <div class="chart-card"><div class="chart-title">Top Departments by Total Pay <span>Top 10</span></div><div class="chart-wrap" style="height:220px"><canvas id="chartPayDept"></canvas></div></div>
-        <div class="chart-card"><div class="chart-title">Employment Type Breakdown <span>By count</span></div><div class="chart-wrap" style="height:220px"><canvas id="chartEmpType"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title">Top Departments by Total Pay <span>Top 10</span></div><div class="chart-wrap" style="height:220px"><canvas id="chartPayDept-legacy"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title">Employment Type Breakdown <span>By count</span></div><div class="chart-wrap" style="height:220px"><canvas id="chartEmpType-legacy"></canvas></div></div>
       </div>
       <div class="charts-row" style="margin-bottom:16px">
-        <div class="chart-card"><div class="chart-title">Pay by Year <span>Total pay trend</span></div><div class="chart-wrap" style="height:200px"><canvas id="chartPayYear"></canvas></div></div>
-        <div class="chart-card"><div class="chart-title">Pay Composition <span>Regular / OT / Other</span></div><div class="chart-wrap" style="height:200px"><canvas id="chartPayComp"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title">Pay by Year <span>Total pay trend</span></div><div class="chart-wrap" style="height:200px"><canvas id="chartPayYear-legacy"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title">Pay Composition <span>Regular / OT / Other</span></div><div class="chart-wrap" style="height:200px"><canvas id="chartPayComp-legacy"></canvas></div></div>
       </div>
       <!-- Top job titles table -->
       <div class="tbl-wrap" style="margin-bottom:16px">
@@ -715,12 +732,12 @@ textarea{resize:vertical;min-height:64px}
           <span>🏆 Top Job Titles by Average Pay</span>
           <button class="btn btn-ghost btn-sm" style="color:var(--expense);font-size:12px" onclick="clearPayrollImport()">🗑 Clear Imported Data</button>
         </div>
-        <table class="tbl"><thead><tr><th>#</th><th>Job Title</th><th>Avg Pay</th></tr></thead><tbody id="pr-titles-body"></tbody></table>
+        <table class="tbl"><thead><tr><th>#</th><th>Job Title</th><th>Avg Pay</th></tr></thead><tbody id="pr-titles-body-legacy"></tbody></table>
       </div>
       <!-- Job status table -->
       <div class="tbl-wrap">
         <div style="padding:12px 18px;border-bottom:1px solid var(--border);font-size:14px;font-weight:600;background:var(--surface)">Employment Status Distribution</div>
-        <table class="tbl"><thead><tr><th>Status</th><th>Count</th><th>% of Total</th></tr></thead><tbody id="pr-status-body"></tbody></table>
+        <table class="tbl"><thead><tr><th>Status</th><th>Count</th><th>% of Total</th></tr></thead><tbody id="pr-status-body-legacy"></tbody></table>
       </div>
     </div>
 
@@ -2328,14 +2345,19 @@ function connectGoogleAds() {
     return;
   }
 
-  // Redirect to OAuth flow — Google will send them back to /oauth/google-ads/callback
-  const params = new URLSearchParams({
-    client_id:       clientId,
-    client_secret:   clientSecret,
-    developer_token: devToken,
-    customer_id:     customerId,
-  });
-  window.location.href = `/oauth/google-ads/start?${params.toString()}`;
+  // POST credentials (never in URL) — server returns redirect URL
+  apiFetch('/oauth/google-ads/start', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ client_id: clientId, client_secret: clientSecret,
+                           developer_token: devToken, customer_id: customerId }),
+  }).then(r => r.json()).then(data => {
+    if (data.auth_url) {
+      window.location.href = data.auth_url;
+    } else {
+      _showGaError(data.error || 'OAuth setup failed.');
+    }
+  }).catch(() => _showGaError('Network error — please try again.'));
 }
 
 function _showGaError(msg) {
@@ -2584,10 +2606,19 @@ document.addEventListener('click', e => {
   if (!e.target.closest('#topbar-user')) $('userMenu').classList.remove('open');
 });
 
+// ── CSRF token helper ──────────────────────────────────────────────────────
+let _csrfToken = '';
+function apiFetch(url, opts = {}) {
+  opts.headers = opts.headers || {};
+  if (_csrfToken) opts.headers['X-CSRF-Token'] = _csrfToken;
+  return fetch(url, opts);
+}
+
 // ── Init ───────────────────────────────────────────────────────────────────
 (async () => {
   const me = await fetch('/api/me').then(r=>r.json()).catch(()=>null);
   if (!me || me.error) { window.location.href = '/login'; return; }
+  _csrfToken = me.csrf_token || '';
   const initials = (me.name||me.email||'?').charAt(0).toUpperCase();
   $('user-avatar').textContent = initials;
   $('user-name').textContent   = me.name || me.email;

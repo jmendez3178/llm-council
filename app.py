@@ -2,8 +2,9 @@ from flask import Flask, request, jsonify, render_template, session, redirect, u
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
-import anthropic, json, math, os, re, secrets
+import anthropic, json, math, os, re, secrets, time
 from datetime import datetime, date
+from collections import defaultdict
 import calendar
 
 # Load .env file if present (local development)
@@ -21,7 +22,13 @@ os.makedirs(db_dir, exist_ok=True)
 db_path = os.path.join(db_dir, 'booksai.db')
 app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{db_path}"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.secret_key = os.environ.get('SECRET_KEY', secrets.token_hex(32))
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024   # 16 MB upload limit
+_secret_key = os.environ.get('SECRET_KEY', '')
+if not _secret_key:
+    import sys
+    print('WARNING: SECRET_KEY env var not set — using ephemeral key; sessions will not survive restarts!', file=sys.stderr)
+    _secret_key = secrets.token_hex(32)
+app.secret_key = _secret_key
 db = SQLAlchemy(app)
 
 
@@ -356,6 +363,55 @@ def current_uid():
     return session.get('user_id')
 
 
+# ── CSRF protection ────────────────────────────────────────────────────────
+
+def generate_csrf_token():
+    if 'csrf_token' not in session:
+        session['csrf_token'] = secrets.token_hex(32)
+    return session['csrf_token']
+
+def csrf_required(f):
+    """Validate CSRF token on state-changing API calls."""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = (request.headers.get('X-CSRF-Token') or
+                 (request.json or {}).get('csrf_token', '') or
+                 request.form.get('csrf_token', ''))
+        expected = session.get('csrf_token', '')
+        if not expected or not secrets.compare_digest(token, expected):
+            return jsonify({'error': 'Invalid CSRF token'}), 403
+        return f(*args, **kwargs)
+    return decorated
+
+app.jinja_env.globals['csrf_token'] = generate_csrf_token
+
+
+# ── Simple in-memory rate limiter ──────────────────────────────────────────
+
+_rate_buckets: dict = defaultdict(list)
+
+def _rate_limit(key: str, max_calls: int, window_seconds: int) -> bool:
+    """Return True if the call is allowed, False if rate-limited."""
+    now   = time.time()
+    calls = _rate_buckets[key]
+    # Remove timestamps outside the rolling window
+    _rate_buckets[key] = [t for t in calls if now - t < window_seconds]
+    if len(_rate_buckets[key]) >= max_calls:
+        return False
+    _rate_buckets[key].append(now)
+    return True
+
+def ai_rate_limited(f):
+    """20 AI calls per user per minute."""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        uid = session.get('user_id', 'anon')
+        if not _rate_limit(f'ai:{uid}', max_calls=20, window_seconds=60):
+            return jsonify({'error': 'Too many requests — please wait a moment.'}), 429
+        return f(*args, **kwargs)
+    return decorated
+
+
 # ── Anthropic client ───────────────────────────────────────────────────────
 
 def get_client():
@@ -461,6 +517,7 @@ def login_page():
     if user.plan == 'suspended':
         return jsonify({'error': 'Your account has been suspended. Please contact support.'}), 403
 
+    session.clear()
     session['user_id'] = user.id
     return jsonify({'ok': True, 'name': user.name, 'is_admin': user.is_admin})
 
@@ -479,7 +536,8 @@ def me():
     if not u:
         session.clear()
         return jsonify({'error': 'Not logged in'}), 401
-    return jsonify({'id': u.id, 'name': u.name, 'email': u.email, 'is_admin': u.is_admin})
+    return jsonify({'id': u.id, 'name': u.name, 'email': u.email,
+                    'is_admin': u.is_admin, 'csrf_token': generate_csrf_token()})
 
 
 # ── Admin routes ───────────────────────────────────────────────────────────
@@ -1015,17 +1073,18 @@ _GA_SCOPES = ['https://www.googleapis.com/auth/adwords']
 _GA_REDIRECT = 'http://localhost:5000/oauth/google-ads/callback'
 
 
-@app.route('/oauth/google-ads/start')
+@app.route('/oauth/google-ads/start', methods=['POST'])
 @login_required
 def google_ads_oauth_start():
     """Kick off the OAuth2 flow — redirect user to Google consent screen."""
-    client_id     = request.args.get('client_id', '').strip()
-    client_secret = request.args.get('client_secret', '').strip()
-    dev_token     = request.args.get('developer_token', '').strip()
-    customer_id   = request.args.get('customer_id', '').strip()
+    d             = request.json or {}
+    client_id     = d.get('client_id', '').strip()
+    client_secret = d.get('client_secret', '').strip()
+    dev_token     = d.get('developer_token', '').strip()
+    customer_id   = d.get('customer_id', '').strip()
 
     if not client_id or not client_secret:
-        return 'Missing client_id or client_secret', 400
+        return jsonify({'error': 'Missing client_id or client_secret'}), 400
 
     # Stash in session so callback can retrieve them
     session['ga_pending'] = {
@@ -1054,9 +1113,9 @@ def google_ads_oauth_start():
             prompt='consent',
         )
         session['ga_oauth_state'] = state
-        return redirect(auth_url)
+        return jsonify({'auth_url': auth_url})
     except Exception as e:
-        return f'OAuth setup failed: {e}', 500
+        return jsonify({'error': f'OAuth setup failed: {e}'}), 500
 
 
 @app.route('/oauth/google-ads/callback')
@@ -1072,7 +1131,8 @@ def google_ads_oauth_callback():
     try:
         from google_auth_oauthlib.flow import Flow   # type: ignore
         import os
-        os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'   # allow http for localhost
+        if os.environ.get('FLASK_ENV') == 'development' or os.environ.get('OAUTHLIB_INSECURE_TRANSPORT'):
+            os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
         flow = Flow.from_client_config(
             {'web': {
@@ -1339,6 +1399,7 @@ import base64
 
 @app.route('/upload', methods=['POST'])
 @login_required
+@ai_rate_limited
 def upload():
     if 'file' not in request.files:
         return jsonify({'error': 'No file uploaded'}), 400
@@ -1459,6 +1520,7 @@ def clean_data():
 
 @app.route('/categorize', methods=['POST'])
 @login_required
+@ai_rate_limited
 def categorize():
     data         = request.json or {}
     transactions = data.get('transactions', [])
@@ -1502,6 +1564,7 @@ JSON:"""
 
 @app.route('/chat', methods=['POST'])
 @login_required
+@ai_rate_limited
 def chat():
     data    = request.json or {}
     message = data.get('message', '').strip()
@@ -2169,6 +2232,7 @@ def billing_page():
 
 
 @app.route('/billing/success')
+@login_required
 def billing_success():
     return '''<!DOCTYPE html><html><head><title>Payment Successful — BooksAI</title>
 <style>body{font-family:-apple-system,sans-serif;background:#0d1117;color:#e6edf3;display:flex;
