@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BooksAI — Get Started</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2128;
+    --border: #30363d;
+    --accent: #10b981;
+    --accent-dark: #059669;
+    --accent-light: rgba(16,185,129,.12);
+    --text: #e6edf3;
+    --muted: #848d97;
+    --heading: #f0f6fc;
+    --expense: #f85149;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .logo-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 32px;
+  }
+  .logo-mark {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, var(--accent), #0ea5e9);
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 900;
+    color: #fff;
+  }
+  .logo-name {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--heading);
+  }
+
+  /* Progress dots */
+  .progress {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 32px;
+  }
+  .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: background .3s, transform .3s;
+  }
+  .dot.active {
+    background: var(--accent);
+    transform: scale(1.3);
+  }
+  .dot.done {
+    background: var(--accent);
+    opacity: .5;
+  }
+  .dot-line {
+    width: 32px;
+    height: 2px;
+    background: var(--border);
+    border-radius: 2px;
+  }
+
+  /* Card */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 44px 40px;
+    width: 480px;
+    max-width: 95vw;
+  }
+
+  .step { display: none; }
+  .step.active { display: block; }
+
+  .step-label {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+
+  h2 {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--heading);
+    margin-bottom: 6px;
+    line-height: 1.25;
+  }
+
+  .step-sub {
+    font-size: 14px;
+    color: var(--muted);
+    margin-bottom: 28px;
+    line-height: 1.6;
+  }
+
+  label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--muted);
+    margin-bottom: 5px;
+  }
+
+  input[type="text"],
+  input[type="file"],
+  select {
+    width: 100%;
+    background: #0d1117;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 14px;
+    padding: 10px 13px;
+    outline: none;
+    transition: border-color .15s;
+    margin-bottom: 16px;
+    font-family: inherit;
+  }
+  input[type="text"]:focus,
+  select:focus { border-color: var(--accent); }
+
+  select option { background: #0d1117; }
+
+  /* File upload zone */
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 32px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .2s, background .2s;
+    margin-bottom: 20px;
+    position: relative;
+  }
+  .upload-zone:hover,
+  .upload-zone.dragover {
+    border-color: var(--accent);
+    background: var(--accent-light);
+  }
+  .upload-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+  }
+  .upload-icon { font-size: 32px; margin-bottom: 10px; }
+  .upload-label { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .upload-hint { font-size: 12px; color: var(--muted); }
+  .upload-filename { font-size: 13px; color: var(--accent); margin-top: 10px; font-weight: 600; }
+
+  .btn {
+    width: 100%;
+    background: var(--accent);
+    color: #000;
+    font-weight: 700;
+    font-size: 15px;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: opacity .15s;
+    font-family: inherit;
+    margin-top: 4px;
+  }
+  .btn:hover { opacity: .88; }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+
+  .btn-outline {
+    width: 100%;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-weight: 600;
+    font-size: 14px;
+    padding: 11px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all .15s;
+    font-family: inherit;
+    margin-top: 10px;
+  }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+
+  .skip-link {
+    display: block;
+    text-align: center;
+    margin-top: 16px;
+    font-size: 13px;
+    color: var(--muted);
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .skip-link:hover { color: var(--text); }
+
+  /* Done step */
+  .done-icon {
+    width: 72px;
+    height: 72px;
+    background: var(--accent-light);
+    border: 2px solid rgba(16,185,129,.3);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    margin: 0 auto 24px;
+  }
+
+  .error {
+    background: rgba(248,81,73,.12);
+    border: 1px solid rgba(248,81,73,.4);
+    border-radius: 7px;
+    color: var(--expense);
+    font-size: 13px;
+    padding: 10px 12px;
+    margin-bottom: 16px;
+    display: none;
+  }
+  .error.show { display: block; }
+
+  .spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(0,0,0,.2);
+    border-top-color: #000;
+    border-radius: 50%;
+    animation: spin .6s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="logo-wrap">
+  <div class="logo-mark">B</div>
+  <span class="logo-name">BooksAI</span>
+</div>
+
+<!-- Progress dots -->
+<div class="progress" id="progressDots">
+  <div class="dot active" id="dot0"></div>
+  <div class="dot-line"></div>
+  <div class="dot" id="dot1"></div>
+  <div class="dot-line"></div>
+  <div class="dot" id="dot2"></div>
+</div>
+
+<div class="card">
+
+  <!-- Step 1: Welcome -->
+  <div class="step active" id="step0">
+    <div class="step-label">Step 1 of 3</div>
+    <h2>Tell us about your business</h2>
+    <p class="step-sub">We'll customize your dashboard based on your answers.</p>
+
+    <div class="error" id="errStep0"></div>
+
+    <label for="bizName">Business Name</label>
+    <input type="text" id="bizName" placeholder="e.g. Coastal Events Co." autocomplete="organization">
+
+    <label for="bizType">Type of Business</label>
+    <select id="bizType">
+      <option value="" disabled selected>Select a type…</option>
+      <option value="freelancer">Freelancer</option>
+      <option value="retail">Retail</option>
+      <option value="restaurant">Restaurant</option>
+      <option value="service">Service Business</option>
+      <option value="ecommerce">E-commerce</option>
+      <option value="other">Other</option>
+    </select>
+
+    <button class="btn" id="step0Btn" onclick="submitStep0()">Continue →</button>
+  </div>
+
+  <!-- Step 2: Import -->
+  <div class="step" id="step1">
+    <div class="step-label">Step 2 of 3</div>
+    <h2>Import your bank transactions</h2>
+    <p class="step-sub">Export a CSV or Excel file from your bank's website and drop it below. BooksAI will auto-detect columns and categorize everything instantly.</p>
+
+    <div class="error" id="errStep1"></div>
+
+    <div class="upload-zone" id="uploadZone">
+      <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" onchange="handleFileSelect(this)">
+      <div class="upload-icon">📂</div>
+      <div class="upload-label">Drop your CSV or Excel file here</div>
+      <div class="upload-hint">or click to browse</div>
+      <div class="upload-filename" id="fileName"></div>
+    </div>
+
+    <button class="btn" id="step1Btn" onclick="submitStep1()">Import &amp; Continue →</button>
+    <span class="skip-link" onclick="goToDone()">I'll do this later →</span>
+  </div>
+
+  <!-- Step 3: Done -->
+  <div class="step" id="step2" style="text-align:center">
+    <div class="step-label">Step 3 of 3</div>
+    <div class="done-icon">🎉</div>
+    <h2>You're all set!</h2>
+    <p class="step-sub" style="margin:0 auto 32px">Your account is ready. Head to your dashboard to see your books come to life with AI.</p>
+    <button class="btn" onclick="window.location.href='/'">Go to Dashboard →</button>
+  </div>
+
+</div>
+
+<script>
+let currentStep = 0;
+
+function setStep(n) {
+  document.getElementById('step' + currentStep).classList.remove('active');
+  currentStep = n;
+  document.getElementById('step' + n).classList.add('active');
+  // Update dots
+  for (let i = 0; i < 3; i++) {
+    const d = document.getElementById('dot' + i);
+    d.className = 'dot';
+    if (i < n) d.classList.add('done');
+    if (i === n) d.classList.add('active');
+  }
+}
+
+async function submitStep0() {
+  const btn     = document.getElementById('step0Btn');
+  const errBox  = document.getElementById('errStep0');
+  const bizName = document.getElementById('bizName').value.trim();
+  const bizType = document.getElementById('bizType').value;
+
+  errBox.classList.remove('show');
+  if (!bizName) { showErr('errStep0', 'Please enter your business name.'); return; }
+  if (!bizType) { showErr('errStep0', 'Please select your business type.'); return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Saving…';
+
+  try {
+    const r = await fetch('/api/me', {
+      method: 'PATCH',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({name: bizName, business_type: bizType})
+    });
+    // Accept 200 or 404 (route may not exist yet) — proceed regardless
+    setStep(1);
+  } catch(e) {
+    // Network error — still proceed to next step
+    setStep(1);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'Continue →';
+  }
+}
+
+function handleFileSelect(input) {
+  const file = input.files[0];
+  if (file) {
+    document.getElementById('fileName').textContent = file.name;
+  }
+}
+
+// Drag and drop
+const zone = document.getElementById('uploadZone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+zone.addEventListener('drop', e => {
+  e.preventDefault();
+  zone.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) {
+    document.getElementById('fileInput').files = e.dataTransfer.files;
+    document.getElementById('fileName').textContent = file.name;
+  }
+});
+
+async function submitStep1() {
+  const btn    = document.getElementById('step1Btn');
+  const errBox = document.getElementById('errStep1');
+  const file   = document.getElementById('fileInput').files[0];
+
+  errBox.classList.remove('show');
+  if (!file) { showErr('errStep1', 'Please select a file to upload, or click "I\'ll do this later".'); return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Uploading…';
+
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    const r = await fetch('/upload', { method: 'POST', body: formData });
+    goToDone();
+  } catch(e) {
+    showErr('errStep1', 'Upload failed. Please try again or skip for now.');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'Import &amp; Continue →';
+  }
+}
+
+function goToDone() {
+  setStep(2);
+}
+
+function showErr(id, msg) {
+  const b = document.getElementById(id);
+  b.textContent = msg;
+  b.classList.add('show');
+}
+</script>
+</body>
+</html>

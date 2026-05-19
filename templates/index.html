@@ -3,6 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#10b981">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="BooksAI">
+<link rel="manifest" href="/static/manifest.json">
 <title>BooksAI — Smart Bookkeeping</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.4/styles/ag-grid.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.4/styles/ag-theme-alpine.min.css">
@@ -314,9 +319,63 @@ textarea{resize:vertical;min-height:64px}
   .stats-grid { grid-template-columns: 1fr !important; }
   .topbar-right { gap: 8px; }
 }
+
+/* ── Hamburger menu ─────────────────────────────────────── */
+.hamburger-btn {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  margin-right: 8px;
+  border-radius: 6px;
+}
+.hamburger-btn span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: var(--text);
+  border-radius: 2px;
+  transition: all .25s;
+}
+.hamburger-btn.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.hamburger-btn.open span:nth-child(2) { opacity: 0; }
+.hamburger-btn.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+@media (max-width: 768px) {
+  .hamburger-btn { display: flex; }
+  .sidebar {
+    position: fixed !important;
+    left: -240px !important;
+    top: 0 !important;
+    height: 100vh !important;
+    z-index: 1000 !important;
+    transition: left .25s ease !important;
+  }
+  .sidebar.open {
+    left: 0 !important;
+    box-shadow: 4px 0 20px rgba(0,0,0,.5) !important;
+  }
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.5);
+    z-index: 999;
+  }
+  .sidebar-overlay.open { display: block; }
+}
 </style>
 </head>
 <body>
+
+<!-- Trial Banner -->
+<div id="trial-banner" style="display:none;align-items:center;justify-content:center;gap:8px;
+  padding:10px 16px;font-size:13px;color:#fff;text-align:center;
+  background:linear-gradient(90deg,#059669,#0ea5e9);position:sticky;top:0;z-index:200">
+</div>
 
 <!-- ── Sidebar ── -->
 <nav class="sidebar">
@@ -378,6 +437,9 @@ textarea{resize:vertical;min-height:64px}
 <!-- ── Main ── -->
 <div class="main">
   <div class="topbar">
+    <button class="hamburger-btn" id="hamburgerBtn" onclick="toggleSidebar()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
     <div>
       <div class="topbar-title" id="topbar-title">Dashboard</div>
       <div class="topbar-sub" id="topbar-sub">Overview of your business finances</div>
@@ -392,11 +454,14 @@ textarea{resize:vertical;min-height:64px}
         <a onclick="openPasswordModal();event.stopPropagation()">🔑 Change Password</a>
         <a href="/billing" onclick="event.stopPropagation()">💳 Billing</a>
         <hr>
+        <button class="menu-item" id="installAppBtn" onclick="installApp();event.stopPropagation()" style="display:none;align-items:center;gap:8px;padding:8px 12px;font-size:13px;color:var(--text);text-decoration:none;border-radius:5px;cursor:pointer;transition:background .12s;background:none;border:none;width:100%;text-align:left;font-family:inherit">📲 Install App</button>
+        <hr id="installDivider" style="display:none;border:none;border-top:1px solid var(--border);margin:3px 0">
         <a href="/logout">🚪 Log Out</a>
       </div>
     </div>
     <button class="btn btn-ghost btn-sm" onclick="openClearData()" style="color:var(--expense)">🗑 Clear Data</button>
   </div>
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 
   <div class="content">
 
@@ -2598,6 +2663,27 @@ async function changePassword() {
   }
 }
 
+// ── Sidebar toggle (mobile hamburger) ────────────────────────────────────
+function toggleSidebar() {
+  const sidebar = document.querySelector('.sidebar');
+  const btn = document.getElementById('hamburgerBtn');
+  const overlay = document.getElementById('sidebarOverlay');
+  if (!sidebar) return;
+  sidebar.classList.toggle('open');
+  btn.classList.toggle('open');
+  overlay.classList.toggle('open');
+}
+// Close sidebar when a nav item is clicked on mobile
+document.querySelectorAll('.sidebar .nav-item, .sidebar [onclick]').forEach(el => {
+  el.addEventListener('click', () => {
+    if (window.innerWidth <= 768) {
+      document.querySelector('.sidebar')?.classList.remove('open');
+      document.getElementById('hamburgerBtn')?.classList.remove('open');
+      document.getElementById('sidebarOverlay')?.classList.remove('open');
+    }
+  });
+});
+
 // ── User menu toggle ──────────────────────────────────────────────────────
 function toggleUserMenu() {
   $('userMenu').classList.toggle('open');
@@ -2605,6 +2691,23 @@ function toggleUserMenu() {
 document.addEventListener('click', e => {
   if (!e.target.closest('#topbar-user')) $('userMenu').classList.remove('open');
 });
+
+// ── PWA install prompt ────────────────────────────────────────────────────
+let _installPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  _installPrompt = e;
+  const btn = document.getElementById('installAppBtn');
+  const divider = document.getElementById('installDivider');
+  if (btn) btn.style.display = 'flex';
+  if (divider) divider.style.display = 'block';
+});
+function installApp() {
+  if (_installPrompt) {
+    _installPrompt.prompt();
+    _installPrompt.userChoice.then(() => { _installPrompt = null; });
+  }
+}
 
 // ── CSRF token helper ──────────────────────────────────────────────────────
 let _csrfToken = '';
@@ -2619,6 +2722,21 @@ function apiFetch(url, opts = {}) {
   const me = await fetch('/api/me').then(r=>r.json()).catch(()=>null);
   if (!me || me.error) { window.location.href = '/login'; return; }
   _csrfToken = me.csrf_token || '';
+  // Show trial banner if on trial
+  if (me.plan_tier === 'trial' && me.trial_days_left !== undefined) {
+    const banner = document.getElementById('trial-banner');
+    if (banner) {
+      const daysLeft = me.trial_days_left;
+      if (daysLeft <= 7) {
+        banner.innerHTML = `⚡ Your free trial ends in <strong>${daysLeft} day${daysLeft !== 1 ? 's' : ''}</strong>. <a href="/billing?tier=pro" style="color:#fff;font-weight:700;text-decoration:underline">Upgrade now →</a>`;
+        banner.style.display = 'flex';
+        banner.style.background = daysLeft <= 2 ? 'linear-gradient(90deg,#dc2626,#b91c1c)' : 'linear-gradient(90deg,#d97706,#b45309)';
+      } else if (daysLeft <= 14) {
+        banner.innerHTML = `🎉 You're on a free trial — <strong>${daysLeft} days left</strong>. <a href="/billing?tier=pro" style="color:#fff;font-weight:700;text-decoration:underline">Upgrade to Pro →</a>`;
+        banner.style.display = 'flex';
+      }
+    }
+  }
   const initials = (me.name||me.email||'?').charAt(0).toUpperCase();
   $('user-avatar').textContent = initials;
   $('user-name').textContent   = me.name || me.email;
@@ -2656,5 +2774,10 @@ function apiFetch(url, opts = {}) {
     </div>
   </div>
 </div>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/static/sw.js').catch(() => {});
+}
+</script>
 </body>
 </html>

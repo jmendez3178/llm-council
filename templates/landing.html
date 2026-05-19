@@ -262,6 +262,14 @@
       .features-grid { grid-template-columns: 1fr; }
     }
 
+    @media (max-width: 860px) {
+      #pricing-tiers { grid-template-columns: 1fr !important; max-width: 420px; margin-left: auto !important; margin-right: auto !important; }
+    }
+
+    @media (max-width: 700px) {
+      #testimonials-grid { grid-template-columns: 1fr !important; }
+    }
+
     .step-card { text-align: center; position: relative; }
     .step-num {
       width: 48px;
@@ -390,7 +398,7 @@
   <a href="#features" class="nav-link">Features</a>
   <a href="#pricing" class="nav-link">Pricing</a>
   <a href="/login" class="btn btn-outline" style="padding:7px 16px">Sign In</a>
-  <a href="/login" class="btn btn-primary" style="padding:7px 16px">Get Started</a>
+  <a href="/register" class="btn btn-primary" style="padding:7px 16px">Get Started</a>
 </nav>
 
 <!-- ── Hero ── -->
@@ -402,7 +410,7 @@
   <h1>Bookkeeping That<br>Does the Work for You</h1>
   <p class="hero-sub">AI-powered accounting for small businesses. Import your bank data, get instant categorization, and know your numbers — no accountant required.</p>
   <div class="hero-cta">
-    <a href="/login" class="btn btn-primary btn-lg">Start for Free</a>
+    <a href="/register" class="btn btn-primary btn-lg">Start Free Trial — No Card Required</a>
     <a href="#how-it-works" class="btn btn-outline btn-lg">See How It Works</a>
   </div>
   <p class="hero-social-proof">No credit card required &nbsp;·&nbsp; Up and running in 5 minutes &nbsp;·&nbsp; Cancel anytime</p>
@@ -418,7 +426,7 @@
     </div>
     <ul class="pain-list">
       <li><span class="pain-icon">🕐</span><span>Hours lost every week manually categorizing transactions</span></li>
-      <li><span class="pain-icon">💸</span><span>$200–$500/month on bookkeeping services you can't afford</span></li>
+      <li><span class="pain-icon">💸</span><span>$200–$500/month on bookkeeping services you can't afford — BooksAI Pro does it all for $49/month, less than 1 hour of a bookkeeper's time</span></li>
       <li><span class="pain-icon">😰</span><span>Tax time chaos because your books are always behind</span></li>
       <li><span class="pain-icon">📊</span><span>No real-time view of your profit and loss</span></li>
     </ul>
@@ -494,29 +502,59 @@
 <section id="pricing">
   <div style="text-align:center">
     <div class="section-label">Pricing</div>
-    <h2 class="section-title">Simple, Flat-Rate Pricing</h2>
-    <p class="section-sub" style="margin:0 auto">One plan. Everything included. No per-seat fees or hidden charges.</p>
+    <h2 class="section-title">Simple, Transparent Pricing</h2>
+    <p class="section-sub" style="margin:0 auto">Start free for 14 days. No credit card required.</p>
   </div>
-  <div class="pricing-wrap">
-    <div class="pricing-card">
-      <div class="pricing-badge">Most Popular</div>
-      <div class="pricing-price"><sup>$</sup>15<sub>/month</sub></div>
-      <p class="pricing-desc">Full access for your entire business. Cancel anytime.</p>
-      <ul class="pricing-features">
-        <li>Unlimited transactions &amp; imports</li>
-        <li>AI categorization powered by Claude</li>
+  <div id="pricing-tiers" style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:48px;align-items:start">
+
+    <!-- Starter -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px 24px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:8px">Starter</div>
+      <div style="font-size:36px;font-weight:900;color:var(--heading);line-height:1;margin-bottom:4px"><sup style="font-size:16px;vertical-align:super;font-weight:700">$</sup>19<sub style="font-size:13px;font-weight:500;color:var(--muted)">/mo</sub></div>
+      <p style="font-size:12px;color:var(--muted);margin:8px 0 18px;line-height:1.5">For freelancers &amp; solo businesses</p>
+      <ul class="pricing-features" style="margin-bottom:22px;font-size:12px">
+        <li>Up to 500 transactions/month</li>
         <li>Invoice creation &amp; tracking</li>
-        <li>Payroll management &amp; analytics</li>
-        <li>P&amp;L statements &amp; dashboard</li>
-        <li>Google Ads integration</li>
-        <li>AI chat assistant (unlimited queries)</li>
-        <li>Receipt &amp; pay stub scanning (Vision AI)</li>
-        <li>CSV &amp; Excel export</li>
-        <li>Secure, private data isolation</li>
+        <li>Expense tracking &amp; P&amp;L report</li>
+        <li>CSV/Excel import · 1 user</li>
       </ul>
-      <a href="/login" class="btn btn-primary btn-lg" style="width:100%;justify-content:center">Get Started for $15/month</a>
+      <a href="/register" class="btn btn-outline" style="width:100%;justify-content:center;font-size:13px;padding:9px 0">Start Free Trial</a>
     </div>
+
+    <!-- Pro (featured) -->
+    <div style="background:var(--surface);border:2px solid var(--accent);border-radius:16px;padding:28px 24px;position:relative;transform:translateY(-6px);overflow:hidden">
+      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent),#0ea5e9)"></div>
+      <div style="display:inline-block;background:var(--accent);color:#000;font-size:9px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;padding:3px 10px;border-radius:20px;margin-bottom:10px">Most Popular</div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:8px">Pro</div>
+      <div style="font-size:36px;font-weight:900;color:var(--heading);line-height:1;margin-bottom:4px"><sup style="font-size:16px;vertical-align:super;font-weight:700">$</sup>49<sub style="font-size:13px;font-weight:500;color:var(--muted)">/mo</sub></div>
+      <p style="font-size:12px;color:var(--muted);margin:8px 0 18px;line-height:1.5">For growing small businesses</p>
+      <ul class="pricing-features" style="margin-bottom:22px;font-size:12px">
+        <li>Unlimited transactions</li>
+        <li>AI auto-categorization (Claude)</li>
+        <li>AI chat assistant</li>
+        <li>Payroll &amp; pay stub scanning</li>
+        <li>Google Ads integration · 3 users</li>
+      </ul>
+      <a href="/register" class="btn btn-primary" style="width:100%;justify-content:center;font-size:13px;padding:9px 0">Start Free Trial</a>
+    </div>
+
+    <!-- Business -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px 24px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:8px">Business</div>
+      <div style="font-size:36px;font-weight:900;color:var(--heading);line-height:1;margin-bottom:4px"><sup style="font-size:16px;vertical-align:super;font-weight:700">$</sup>99<sub style="font-size:13px;font-weight:500;color:var(--muted)">/mo</sub></div>
+      <p style="font-size:12px;color:var(--muted);margin:8px 0 18px;line-height:1.5">For established businesses</p>
+      <ul class="pricing-features" style="margin-bottom:22px;font-size:12px">
+        <li>Everything in Pro</li>
+        <li>Unlimited users</li>
+        <li>Advanced reports &amp; API access</li>
+        <li>White-label invoices</li>
+        <li>Priority support</li>
+      </ul>
+      <a href="/register" class="btn btn-outline" style="width:100%;justify-content:center;font-size:13px;padding:9px 0">Start Free Trial</a>
+    </div>
+
   </div>
+  <p style="text-align:center;margin-top:24px;font-size:13px;color:var(--muted)">All plans include a 14-day free trial · No credit card required · <a href="/pricing" style="color:var(--accent)">Compare plans →</a></p>
 </section>
 
 <!-- ── Testimonial ── -->
@@ -525,10 +563,17 @@
     <div class="section-label">Testimonials</div>
     <h2 class="section-title">Loved by Small Business Owners</h2>
   </div>
-  <div class="testimonial-card">
-    <div class="testimonial-stars">★★★★★</div>
-    <p class="testimonial-text">"I was spending $350 a month on a part-time bookkeeper and still didn't know my numbers in real time. BooksAI replaced all of that for $15. I asked it 'what's my net profit this quarter?' and it answered instantly."</p>
-    <div class="testimonial-author"><strong>Maria G.</strong> &nbsp;·&nbsp; Owner, Coastal Events Co.</div>
+  <div id="testimonials-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:48px;max-width:960px;margin-left:auto;margin-right:auto">
+    <div class="testimonial-card" style="margin:0;max-width:none">
+      <div class="testimonial-stars">★★★★★</div>
+      <p class="testimonial-text">"I was spending $350 a month on a part-time bookkeeper and still didn't know my numbers in real time. BooksAI replaced all of that for $49. I asked it 'what's my net profit this quarter?' and it answered instantly."</p>
+      <div class="testimonial-author"><strong>Maria G.</strong> &nbsp;·&nbsp; Owner, Coastal Events Co.</div>
+    </div>
+    <div class="testimonial-card" style="margin:0;max-width:none">
+      <div class="testimonial-stars">★★★★★</div>
+      <p class="testimonial-text">"BooksAI's AI chat is like having a CFO on speed dial. I asked 'which client is most profitable?' and it pulled the exact numbers in seconds."</p>
+      <div class="testimonial-author"><strong>David K.</strong> &nbsp;·&nbsp; Owner, TechRepair Solutions</div>
+    </div>
   </div>
 </section>
 
@@ -537,16 +582,22 @@
   <div class="cta-banner">
     <h2>Ready to Take Control of Your Finances?</h2>
     <p>Join hundreds of small business owners using BooksAI to simplify their books.</p>
-    <a href="/login" class="btn btn-primary btn-lg">Start for Free Today</a>
+    <a href="/register" class="btn btn-primary btn-lg">Start Free Trial — No Card Required</a>
   </div>
 </section>
 
 <!-- ── Footer ── -->
 <footer>
+  <p style="margin-bottom:12px;display:flex;justify-content:center;gap:24px;flex-wrap:wrap">
+    <a href="/landing#features">Features</a>
+    <a href="/pricing">Pricing</a>
+    <a href="/login">Sign In</a>
+    <a href="/register" style="color:var(--accent)">Start Free Trial</a>
+  </p>
   <p style="margin-bottom:6px">
     <strong style="color:var(--text)">BooksAI</strong> &nbsp;·&nbsp; Powered by <a href="https://anthropic.com" target="_blank" rel="noopener">Claude AI</a>
   </p>
-  <p>&copy; 2026 BooksAI. All rights reserved. &nbsp;·&nbsp; <a href="/login">Sign In</a></p>
+  <p>&copy; 2026 BooksAI. All rights reserved.</p>
 </footer>
 
 </body>

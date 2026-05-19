@@ -44,12 +44,25 @@ class User(db.Model):
     created_at    = db.Column(db.DateTime, default=datetime.utcnow)
     stripe_customer_id = db.Column(db.String(200), default='')
     stripe_sub_id      = db.Column(db.String(200), default='')
+    plan_tier          = db.Column(db.String(20), default='trial')   # trial | starter | pro | business
+    trial_ends_at      = db.Column(db.DateTime, nullable=True)
 
     def set_password(self, pw):
         self.password_hash = generate_password_hash(pw, method='pbkdf2:sha256')
 
     def check_password(self, pw):
         return check_password_hash(self.password_hash, pw)
+
+    def is_trial_active(self):
+        if self.plan_tier != 'trial':
+            return True   # paid plan, not on trial restrictions
+        if not self.trial_ends_at:
+            return False
+        return datetime.utcnow() < self.trial_ends_at
+
+    def tier_level(self):
+        """Return numeric level for feature gating: 0=trial, 1=starter, 2=pro, 3=business"""
+        return {'trial': 0, 'starter': 1, 'pro': 2, 'business': 3}.get(self.plan_tier, 0)
 
     def to_dict(self):
         tx_count = Transaction.query.filter_by(user_id=self.id).count()
@@ -345,6 +358,8 @@ def login_required(f):
         if user.plan == 'suspended':
             session.clear()
             return jsonify({'error': 'Account suspended. Please contact support.'}), 403
+        if user.plan_tier == 'trial' and not user.is_trial_active():
+            return jsonify({'error': 'Trial expired. Please upgrade at /billing', 'trial_expired': True}), 402
         return f(*args, **kwargs)
     return decorated
 
@@ -522,13 +537,45 @@ def login_page():
     return jsonify({'ok': True, 'name': user.name, 'is_admin': user.is_admin})
 
 
+@app.route('/register', methods=['GET', 'POST'])
+def register_page():
+    if request.method == 'GET':
+        if 'user_id' in session:
+            return redirect(url_for('index'))
+        return render_template('register.html')
+
+    data  = request.json or {}
+    email = data.get('email', '').strip().lower()
+    pw    = data.get('password', '')
+    name  = data.get('name', '').strip()
+
+    if not email or not pw:
+        return jsonify({'error': 'Email and password are required'}), 400
+    if len(pw) < 8:
+        return jsonify({'error': 'Password must be at least 8 characters'}), 400
+    if User.query.filter_by(email=email).first():
+        return jsonify({'error': 'An account with that email already exists'}), 409
+
+    from datetime import timedelta
+    u = User(email=email, name=name or email.split('@')[0], plan='active',
+             plan_tier='trial', trial_ends_at=datetime.utcnow() + timedelta(days=14))
+    u.set_password(pw)
+    db.session.add(u)
+    db.session.commit()
+
+    session.clear()
+    session['user_id'] = u.id
+    session['onboarding'] = True
+    return jsonify({'ok': True, 'name': u.name, 'is_admin': False, 'onboarding': True})
+
+
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('login_page'))
 
 
-@app.route('/api/me')
+@app.route('/api/me', methods=['GET', 'PATCH'])
 def me():
     if 'user_id' not in session:
         return jsonify({'error': 'Not logged in'}), 401
@@ -536,8 +583,21 @@ def me():
     if not u:
         session.clear()
         return jsonify({'error': 'Not logged in'}), 401
+
+    if request.method == 'PATCH':
+        d = request.json or {}
+        if 'name' in d:
+            u.name = d['name'].strip() or u.name
+        db.session.commit()
+        return jsonify({'ok': True})
+
+    trial_days_left = 0
+    if u.plan_tier == 'trial' and u.trial_ends_at:
+        delta = u.trial_ends_at - datetime.utcnow()
+        trial_days_left = max(0, delta.days)
     return jsonify({'id': u.id, 'name': u.name, 'email': u.email,
-                    'is_admin': u.is_admin, 'csrf_token': generate_csrf_token()})
+                    'is_admin': u.is_admin, 'csrf_token': generate_csrf_token(),
+                    'plan_tier': u.plan_tier, 'trial_days_left': trial_days_left})
 
 
 # ── Admin routes ───────────────────────────────────────────────────────────
@@ -560,7 +620,7 @@ def admin_create_user():
         return redirect(url_for('admin_page'))
     if User.query.filter_by(email=email).first():
         return redirect(url_for('admin_page'))
-    u = User(email=email, name=name, plan='active', is_admin=False)
+    u = User(email=email, name=name, plan='active', plan_tier='starter', is_admin=False)
     u.set_password(pw)
     db.session.add(u)
     db.session.commit()
@@ -603,13 +663,20 @@ def admin_delete_user(uid):
 @app.route('/')
 def index():
     if 'user_id' not in session:
-        return redirect(url_for('login_page'))
+        return redirect(url_for('landing_page'))
     return render_template('index.html')
 
 
 @app.route('/landing')
 def landing_page():
     return render_template('landing.html')
+
+
+@app.route('/onboarding')
+def onboarding_page():
+    if 'user_id' not in session:
+        return redirect(url_for('register_page'))
+    return render_template('onboarding.html')
 
 
 # ── Dashboard ──────────────────────────────────────────────────────────────
@@ -2212,21 +2279,29 @@ def _stripe():
 @app.route('/billing')
 @login_required
 def billing_page():
-    """Self-service: redirect logged-in user to Stripe Checkout."""
-    s           = _stripe()
-    price_id    = os.environ.get('STRIPE_PRICE_ID', '')
-    u           = User.query.get(current_uid())
+    u     = User.query.get(current_uid())
+    s     = _stripe()
+    tier  = request.args.get('tier', 'starter')  # starter | pro | business
+
+    price_map = {
+        'starter':  os.environ.get('STRIPE_PRICE_STARTER', ''),
+        'pro':      os.environ.get('STRIPE_PRICE_PRO', ''),
+        'business': os.environ.get('STRIPE_PRICE_BUSINESS', ''),
+    }
+    # Fallback: support legacy single STRIPE_PRICE_ID
+    legacy_price = os.environ.get('STRIPE_PRICE_ID', '')
+    price_id = price_map.get(tier) or legacy_price
+
     if not s or not price_id:
-        # Stripe not configured — bounce back to app
         return redirect('/?msg=billing_unavailable')
     sess = s.checkout.Session.create(
         mode='subscription',
         line_items=[{'price': price_id, 'quantity': 1}],
         customer_email=u.email,
         client_reference_id=str(u.id),
-        metadata={'user_id': str(u.id)},
+        metadata={'user_id': str(u.id), 'tier': tier},
         success_url=request.host_url + 'billing/success?session_id={CHECKOUT_SESSION_ID}',
-        cancel_url=request.host_url,
+        cancel_url=request.host_url + 'pricing',
     )
     return redirect(sess.url)
 
@@ -2268,7 +2343,10 @@ def billing_webhook():
         if uid:
             u = User.query.get(int(uid))
             if u:
+                tier = obj.get('metadata', {}).get('tier', 'starter')
                 u.plan               = 'active'
+                u.plan_tier          = tier
+                u.trial_ends_at      = None
                 u.stripe_customer_id = obj.get('customer', '')
                 u.stripe_sub_id      = obj.get('subscription', '')
                 db.session.commit()
@@ -2282,6 +2360,11 @@ def billing_webhook():
                 db.session.commit()
 
     return jsonify({'ok': True})
+
+
+@app.route('/pricing')
+def pricing_page():
+    return render_template('pricing.html')
 
 
 @app.route('/admin/users/<int:uid>/payment-link', methods=['POST'])
@@ -2319,7 +2402,9 @@ with app.app_context():
         except Exception:
             pass  # column already exists
     for col_def in [('user', 'stripe_customer_id', 'TEXT DEFAULT ""'),
-                    ('user', 'stripe_sub_id',       'TEXT DEFAULT ""')]:
+                    ('user', 'stripe_sub_id',       'TEXT DEFAULT ""'),
+                    ('user', 'plan_tier',            'TEXT DEFAULT "trial"'),
+                    ('user', 'trial_ends_at',        'DATETIME')]:
         try:
             conn.execute(f'ALTER TABLE "{col_def[0]}" ADD COLUMN {col_def[1]} {col_def[2]}')
         except Exception:

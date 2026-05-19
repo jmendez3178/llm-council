@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BooksAI — Start Free Trial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#0d1117;--surface:#161b22;--border:#30363d;--text:#e6edf3;--muted:#7d8590;--accent:#10b981;--expense:#f85149}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 0}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:40px;width:380px;max-width:95vw}
+  .logo{width:44px;height:44px;background:linear-gradient(135deg,var(--accent),#0ea5e9);border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px;color:#fff;margin:0 auto 16px}
+  .trial-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.3);color:var(--accent);font-size:12px;font-weight:600;padding:5px 14px;border-radius:20px;margin:0 auto 20px;width:fit-content;letter-spacing:.3px}
+  .badge-wrap{text-align:center}
+  h1{font-size:20px;font-weight:700;text-align:center;margin-bottom:4px}
+  .sub{font-size:13px;color:var(--muted);text-align:center;margin-bottom:28px}
+  label{display:block;font-size:12px;font-weight:500;color:var(--muted);margin-bottom:5px}
+  input,select{width:100%;background:#0d1117;border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:14px;padding:9px 12px;outline:none;transition:border-color .15s;margin-bottom:14px;font-family:inherit}
+  input:focus{border-color:var(--accent)}
+  .btn{width:100%;background:var(--accent);color:#000;font-weight:700;font-size:14px;padding:10px;border:none;border-radius:7px;cursor:pointer;margin-top:4px;transition:opacity .15s;font-family:inherit}
+  .btn:hover{opacity:.88}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .error{background:rgba(248,81,73,.12);border:1px solid rgba(248,81,73,.4);border-radius:7px;color:var(--expense);font-size:13px;padding:10px 12px;margin-bottom:16px;display:none}
+  .error.show{display:block}
+  .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(0,0,0,.2);border-top-color:#000;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .signin-link{text-align:center;margin-top:18px;font-size:13px;color:var(--muted)}
+  .signin-link a{color:var(--accent)}
+  .footer{text-align:center;margin-top:16px;font-size:11px;color:var(--muted)}
+  .strength-bar{height:3px;border-radius:3px;margin:-10px 0 14px;background:var(--border);overflow:hidden;transition:all .2s}
+  .strength-bar-fill{height:100%;width:0;border-radius:3px;transition:width .3s,background .3s}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">B</div>
+  <div class="badge-wrap">
+    <div class="trial-badge">✦ 14-Day Free Trial</div>
+  </div>
+  <h1>Create Your Account</h1>
+  <p class="sub">Get started — no credit card required</p>
+
+  <div class="error" id="errBox"></div>
+
+  <label for="name">Full Name</label>
+  <input type="text" id="name" placeholder="Jane Smith" autocomplete="name" autofocus>
+
+  <label for="email">Email Address</label>
+  <input type="email" id="email" placeholder="you@company.com" autocomplete="email">
+
+  <label for="password">Password</label>
+  <input type="password" id="password" placeholder="Min. 8 characters" autocomplete="new-password" oninput="checkStrength(this.value)">
+  <div class="strength-bar"><div class="strength-bar-fill" id="strengthFill"></div></div>
+
+  <label for="confirm">Confirm Password</label>
+  <input type="password" id="confirm" placeholder="••••••••" autocomplete="new-password">
+
+  <button class="btn" id="registerBtn" onclick="register()">Start Free Trial →</button>
+
+  <p class="signin-link">Already have an account? <a href="/login">Sign in</a></p>
+  <p class="footer">No credit card required</p>
+</div>
+
+<script>
+document.getElementById('confirm').addEventListener('keydown', e => {
+  if (e.key === 'Enter') register();
+});
+
+function checkStrength(pw) {
+  const fill = document.getElementById('strengthFill');
+  let score = 0;
+  if (pw.length >= 8) score++;
+  if (/[A-Z]/.test(pw)) score++;
+  if (/[0-9]/.test(pw)) score++;
+  if (/[^A-Za-z0-9]/.test(pw)) score++;
+  const colors = ['', '#f85149', '#e3b341', '#10b981', '#10b981'];
+  const widths = ['0%', '25%', '50%', '75%', '100%'];
+  fill.style.width = widths[score];
+  fill.style.background = colors[score];
+}
+
+async function register() {
+  const btn     = document.getElementById('registerBtn');
+  const errBox  = document.getElementById('errBox');
+  const name    = document.getElementById('name').value.trim();
+  const email   = document.getElementById('email').value.trim();
+  const pw      = document.getElementById('password').value;
+  const confirm = document.getElementById('confirm').value;
+
+  errBox.classList.remove('show');
+
+  if (!name)  { showErr('Please enter your full name.'); return; }
+  if (!email) { showErr('Please enter your email address.'); return; }
+  if (pw.length < 8) { showErr('Password must be at least 8 characters.'); return; }
+  if (pw !== confirm) { showErr('Passwords do not match.'); return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Creating account…';
+
+  try {
+    const r = await fetch('/register', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({name, email, password: pw})
+    });
+    const data = await r.json();
+    if (r.ok) {
+      window.location.href = '/onboarding';
+    } else {
+      showErr(data.error || 'Registration failed. Please try again.');
+      btn.disabled = false;
+      btn.textContent = 'Start Free Trial →';
+    }
+  } catch(e) {
+    showErr('Network error. Please try again.');
+    btn.disabled = false;
+    btn.textContent = 'Start Free Trial →';
+  }
+}
+
+function showErr(msg) {
+  const b = document.getElementById('errBox');
+  b.textContent = msg;
+  b.classList.add('show');
+}
+</script>
+</body>
+</html>

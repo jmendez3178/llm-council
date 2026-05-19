@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BooksAI — Pricing</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --surface2: #1c2128;
+      --border: #30363d;
+      --accent: #10b981;
+      --accent-dark: #059669;
+      --accent-light: rgba(16,185,129,.12);
+      --text: #e6edf3;
+      --muted: #848d97;
+      --heading: #f0f6fc;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Nav ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(13,17,23,.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 40px;
+      height: 60px;
+      gap: 24px;
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--heading);
+      text-decoration: none;
+    }
+
+    .nav-logo .logo-mark {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--accent), #0ea5e9);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 900;
+      color: #fff;
+    }
+
+    .nav-spacer { flex: 1; }
+
+    .nav-link {
+      font-size: 14px;
+      color: var(--muted);
+      font-weight: 500;
+      transition: color .15s;
+    }
+    .nav-link:hover { color: var(--text); text-decoration: none; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 18px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all .15s;
+      text-decoration: none;
+      font-family: inherit;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-dark); text-decoration: none; }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+    .btn-lg { padding: 14px 32px; font-size: 16px; border-radius: 10px; }
+
+    /* ── Page header ── */
+    .page-header {
+      text-align: center;
+      padding: 80px 40px 60px;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    .section-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+
+    .page-header h1 {
+      font-size: clamp(32px, 5vw, 52px);
+      font-weight: 900;
+      color: var(--heading);
+      margin-bottom: 14px;
+      line-height: 1.15;
+    }
+
+    .page-header p {
+      font-size: 17px;
+      color: var(--muted);
+    }
+
+    /* ── Pricing Grid ── */
+    .pricing-section {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 40px 80px;
+    }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      align-items: start;
+    }
+
+    @media (max-width: 900px) {
+      .pricing-grid { grid-template-columns: 1fr; max-width: 440px; margin: 0 auto; }
+    }
+
+    .tier-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 36px 32px;
+      position: relative;
+      transition: border-color .2s, transform .2s;
+    }
+    .tier-card:hover { transform: translateY(-3px); }
+
+    .tier-card.featured {
+      border: 2px solid var(--accent);
+      transform: translateY(-6px);
+    }
+    .tier-card.featured:hover { transform: translateY(-9px); }
+    .tier-card.featured::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent), #0ea5e9);
+      border-radius: 18px 18px 0 0;
+    }
+
+    .popular-badge {
+      display: inline-block;
+      background: var(--accent);
+      color: #000;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .8px;
+      text-transform: uppercase;
+      padding: 3px 12px;
+      border-radius: 20px;
+      margin-bottom: 16px;
+    }
+
+    .tier-name {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .tier-price {
+      font-size: 48px;
+      font-weight: 900;
+      color: var(--heading);
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .tier-price sup { font-size: 22px; vertical-align: super; font-weight: 700; }
+    .tier-price sub { font-size: 14px; font-weight: 500; color: var(--muted); }
+
+    .tier-desc {
+      font-size: 13px;
+      color: var(--muted);
+      margin: 10px 0 24px;
+      line-height: 1.6;
+    }
+
+    .tier-divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 0 0 20px;
+    }
+
+    .tier-features {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      margin-bottom: 28px;
+    }
+    .tier-features li {
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+      font-size: 13px;
+      color: var(--text);
+    }
+    .tier-features li::before {
+      content: '✓';
+      color: var(--accent);
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .tier-cta {
+      display: block;
+      width: 100%;
+      text-align: center;
+      padding: 11px 0;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all .15s;
+      text-decoration: none;
+    }
+    .tier-cta-primary {
+      background: var(--accent);
+      color: #000;
+    }
+    .tier-cta-primary:hover { background: var(--accent-dark); text-decoration: none; color: #000; }
+    .tier-cta-outline {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .tier-cta-outline:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+
+    /* ── Trial note ── */
+    .trial-note {
+      text-align: center;
+      margin-top: 32px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+    .trial-note strong { color: var(--accent); }
+
+    /* ── Comparison Table ── */
+    .compare-section {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 40px 80px;
+    }
+
+    .compare-section h2 {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--heading);
+      margin-bottom: 6px;
+    }
+    .compare-section .sub {
+      font-size: 15px;
+      color: var(--muted);
+      margin-bottom: 32px;
+    }
+
+    .compare-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    .compare-table th, .compare-table td {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      text-align: center;
+    }
+    .compare-table th:first-child, .compare-table td:first-child {
+      text-align: left;
+    }
+    .compare-table thead tr {
+      background: var(--surface);
+    }
+    .compare-table thead th {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+    .compare-table thead th.highlight {
+      color: var(--accent);
+      font-size: 14px;
+    }
+    .compare-table tbody tr:hover { background: var(--surface); }
+    .compare-table tbody td { color: var(--text); }
+    .compare-table tbody td:first-child { color: var(--muted); font-weight: 500; }
+    .yes { color: var(--accent); font-size: 18px; }
+    .no  { color: var(--border); font-size: 18px; }
+
+    /* ── FAQ ── */
+    .faq-section {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 0 40px 100px;
+    }
+
+    .faq-section h2 {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--heading);
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .faq-item {
+      border-bottom: 1px solid var(--border);
+      padding: 24px 0;
+    }
+    .faq-item:first-of-type { border-top: 1px solid var(--border); }
+
+    .faq-q {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--heading);
+      margin-bottom: 10px;
+    }
+    .faq-a {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.75;
+    }
+
+    /* ── CTA Banner ── */
+    .cta-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 40px 80px;
+    }
+    .cta-banner {
+      background: linear-gradient(135deg, rgba(16,185,129,.15), rgba(14,165,233,.1));
+      border: 1px solid rgba(16,185,129,.25);
+      border-radius: 20px;
+      padding: 60px 40px;
+      text-align: center;
+    }
+    .cta-banner h2 { font-size: 32px; font-weight: 800; color: var(--heading); margin-bottom: 12px; }
+    .cta-banner p { font-size: 16px; color: var(--muted); margin-bottom: 28px; }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 40px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    footer a { color: var(--muted); }
+    footer a:hover { color: var(--accent); }
+    .footer-links { display: flex; justify-content: center; gap: 24px; margin-bottom: 12px; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+
+<!-- ── Nav ── -->
+<nav>
+  <a href="/landing" class="nav-logo">
+    <div class="logo-mark">B</div>
+    BooksAI
+  </a>
+  <div class="nav-spacer"></div>
+  <a href="/landing#features" class="nav-link">Features</a>
+  <a href="/pricing" class="nav-link" style="color:var(--text)">Pricing</a>
+  <a href="/login" class="btn btn-outline" style="padding:7px 16px">Sign In</a>
+  <a href="/register" class="btn btn-primary" style="padding:7px 16px">Start Free Trial</a>
+</nav>
+
+<!-- ── Page Header ── -->
+<div class="page-header">
+  <div class="section-label">Pricing</div>
+  <h1>Simple Pricing,<br>No Surprises</h1>
+  <p>Start free for 14 days. Pick the plan that fits your business.</p>
+</div>
+
+<!-- ── Pricing Cards ── -->
+<div class="pricing-section">
+  <div class="pricing-grid">
+
+    <!-- Starter -->
+    <div class="tier-card">
+      <div class="tier-name">Starter</div>
+      <div class="tier-price"><sup>$</sup>19<sub>/mo</sub></div>
+      <p class="tier-desc">For freelancers &amp; solo businesses</p>
+      <hr class="tier-divider">
+      <ul class="tier-features">
+        <li>Up to 500 transactions/month</li>
+        <li>Invoice creation &amp; tracking</li>
+        <li>Expense tracking</li>
+        <li>Basic P&amp;L report</li>
+        <li>CSV/Excel import</li>
+        <li>1 user</li>
+      </ul>
+      <a href="/register" class="tier-cta tier-cta-outline">Start Free Trial</a>
+    </div>
+
+    <!-- Pro (featured) -->
+    <div class="tier-card featured">
+      <div class="popular-badge">Most Popular</div>
+      <div class="tier-name">Pro</div>
+      <div class="tier-price"><sup>$</sup>49<sub>/mo</sub></div>
+      <p class="tier-desc">For growing small businesses</p>
+      <hr class="tier-divider">
+      <ul class="tier-features">
+        <li>Unlimited transactions</li>
+        <li>Invoice creation &amp; tracking</li>
+        <li>Expense tracking</li>
+        <li>AI auto-categorization (Claude)</li>
+        <li>AI chat assistant</li>
+        <li>Payroll management</li>
+        <li>Pay stub scanning (Vision AI)</li>
+        <li>Receipt scanning</li>
+        <li>Google Ads integration</li>
+        <li>3 users</li>
+      </ul>
+      <a href="/register" class="tier-cta tier-cta-primary">Start Free Trial</a>
+    </div>
+
+    <!-- Business -->
+    <div class="tier-card">
+      <div class="tier-name">Business</div>
+      <div class="tier-price"><sup>$</sup>99<sub>/mo</sub></div>
+      <p class="tier-desc">For established businesses</p>
+      <hr class="tier-divider">
+      <ul class="tier-features">
+        <li>Everything in Pro</li>
+        <li>Unlimited users</li>
+        <li>Priority support</li>
+        <li>Advanced financial reports</li>
+        <li>Recurring invoices</li>
+        <li>API access</li>
+        <li>White-label invoices</li>
+        <li>Dedicated onboarding</li>
+      </ul>
+      <a href="/register" class="tier-cta tier-cta-outline">Start Free Trial</a>
+    </div>
+
+  </div>
+
+  <p class="trial-note"><strong>All plans include a 14-day free trial.</strong> No credit card required.</p>
+</div>
+
+<!-- ── Comparison Table ── -->
+<div class="compare-section">
+  <div class="section-label">How We Compare</div>
+  <h2>BooksAI vs. The Competition</h2>
+  <p class="sub">See why AI-native bookkeeping leaves legacy tools behind.</p>
+
+  <table class="compare-table">
+    <thead>
+      <tr>
+        <th>Feature</th>
+        <th class="highlight">BooksAI Pro</th>
+        <th>QuickBooks</th>
+        <th>FreshBooks</th>
+        <th>Wave</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Monthly Price</td>
+        <td style="color:var(--accent);font-weight:700">$49/mo</td>
+        <td>$90/mo</td>
+        <td>$55/mo</td>
+        <td>$16/mo</td>
+      </tr>
+      <tr>
+        <td>AI Categorization</td>
+        <td><span class="yes">✅</span></td>
+        <td><span class="no">❌</span></td>
+        <td><span class="no">❌</span></td>
+        <td><span class="no">❌</span></td>
+      </tr>
+      <tr>
+        <td>AI Chat Assistant</td>
+        <td><span class="yes">✅</span></td>
+        <td><span class="no">❌</span></td>
+        <td><span class="no">❌</span></td>
+        <td><span class="no">❌</span></td>
+      </tr>
+      <tr>
+        <td>Pay Stub Scanning</td>
+        <td><span class="yes">✅</span></td>
+        <td><span class="no">❌</span></td>
+        <td><span class="no">❌</span></td>
+        <td><span class="no">❌</span></td>
+      </tr>
+      <tr>
+        <td>Google Ads Integration</td>
+        <td><span class="yes">✅</span></td>
+        <td><span class="no">❌</span></td>
+        <td><span class="no">❌</span></td>
+        <td><span class="no">❌</span></td>
+      </tr>
+      <tr>
+        <td>Free Trial</td>
+        <td style="color:var(--accent);font-weight:600">14 days</td>
+        <td>30 days</td>
+        <td>30 days</td>
+        <td>Free plan</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ── FAQ ── -->
+<div class="faq-section">
+  <h2>Frequently Asked Questions</h2>
+
+  <div class="faq-item">
+    <div class="faq-q">Can I cancel anytime?</div>
+    <div class="faq-a">Yes, cancel at any time, no questions asked. Your data remains accessible until the end of your billing period.</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q">What happens after my trial?</div>
+    <div class="faq-a">After 14 days you'll be prompted to choose a plan. Your data is never deleted — it will be there waiting for you.</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q">Do I need a credit card for the trial?</div>
+    <div class="faq-a">No. Start your free trial with just your email and password. We'll only ask for payment details when you're ready to upgrade.</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q">Can I import my existing data?</div>
+    <div class="faq-a">Yes. Export a CSV from your bank and BooksAI will automatically detect columns and import everything. Most imports take under 60 seconds.</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q">Is my financial data secure?</div>
+    <div class="faq-a">All data is encrypted at rest and in transit. Each account is fully isolated — there is no cross-tenant data access. Your books are yours alone.</div>
+  </div>
+</div>
+
+<!-- ── CTA Banner ── -->
+<div class="cta-wrap">
+  <div class="cta-banner">
+    <h2>Ready to Take Control of Your Finances?</h2>
+    <p>Start your free trial today. No credit card needed.</p>
+    <a href="/register" class="btn btn-primary btn-lg">Start Free Trial — No Card Required</a>
+  </div>
+</div>
+
+<!-- ── Footer ── -->
+<footer>
+  <div class="footer-links">
+    <a href="/landing#features">Features</a>
+    <a href="/pricing">Pricing</a>
+    <a href="/login">Sign In</a>
+    <a href="/register">Start Free Trial</a>
+  </div>
+  <p style="margin-bottom:6px">
+    <strong style="color:var(--text)">BooksAI</strong> &nbsp;·&nbsp; Powered by <a href="https://anthropic.com" target="_blank" rel="noopener">Claude AI</a>
+  </p>
+  <p>&copy; 2026 BooksAI. All rights reserved.</p>
+</footer>
+
+</body>
+</html>
