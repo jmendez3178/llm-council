@@ -17,6 +17,7 @@ app = Flask(__name__)
 
 # ── Config ─────────────────────────────────────────────────────────────────
 db_dir = os.environ.get('DATA_DIR', os.path.dirname(os.path.abspath(__file__)))
+os.makedirs(db_dir, exist_ok=True)
 db_path = os.path.join(db_dir, 'booksai.db')
 app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{db_path}"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
