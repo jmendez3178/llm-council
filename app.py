@@ -31,22 +31,9 @@ if not _secret_key:
 app.secret_key = _secret_key
 db = SQLAlchemy(app)
 
-# ── Real-time visualiser (Flask-SocketIO) ──────────────────────────────────
-from flask_socketio import SocketIO
-socketio = SocketIO(app, cors_allowed_origins='*', async_mode='threading')
-
 def _emit(agent_id: str, event_type: str, message: str, data: dict = None):
-    """Broadcast an agent lifecycle event to all connected game viewers."""
-    try:
-        socketio.emit('agent_event', {
-            'agent_id':   agent_id,
-            'event_type': event_type,   # start | tool_use | complete | error
-            'message':    message,
-            'data':       data or {},
-            'timestamp':  datetime.utcnow().isoformat(),
-        })
-    except Exception:
-        pass  # never let telemetry break a real request
+    """No-op stub — real-time visualiser removed (was incompatible with gunicorn sync workers)."""
+    pass
 
 
 # ── Models ─────────────────────────────────────────────────────────────────
