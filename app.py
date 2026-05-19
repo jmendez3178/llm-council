@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template, session, redirect, url_for
+from flask import Flask, request, jsonify, render_template, session, redirect, url_for, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
@@ -30,6 +30,25 @@ if not _secret_key:
     _secret_key = secrets.token_hex(32)
 app.secret_key = _secret_key
 db = SQLAlchemy(app)
+
+# ── Real-time visualiser (Flask-SocketIO) ──────────────────────────────────
+import eventlet
+eventlet.monkey_patch()
+from flask_socketio import SocketIO
+socketio = SocketIO(app, cors_allowed_origins='*', async_mode='eventlet')
+
+def _emit(agent_id: str, event_type: str, message: str, data: dict = None):
+    """Broadcast an agent lifecycle event to all connected game viewers."""
+    try:
+        socketio.emit('agent_event', {
+            'agent_id':   agent_id,
+            'event_type': event_type,   # start | tool_use | complete | error
+            'message':    message,
+            'data':       data or {},
+            'timestamp':  datetime.utcnow().isoformat(),
+        })
+    except Exception:
+        pass  # never let telemetry break a real request
 
 
 # ── Models ─────────────────────────────────────────────────────────────────
@@ -358,7 +377,7 @@ def login_required(f):
         if user.plan == 'suspended':
             session.clear()
             return jsonify({'error': 'Account suspended. Please contact support.'}), 403
-        if user.plan_tier == 'trial' and not user.is_trial_active():
+        if not user.is_admin and user.plan_tier == 'trial' and not user.is_trial_active():
             return jsonify({'error': 'Trial expired. Please upgrade at /billing', 'trial_expired': True}), 402
         return f(*args, **kwargs)
     return decorated
@@ -469,6 +488,8 @@ EXCEL_TOOLS = [
 
 
 def run_excel_agent(columns, sample_rows):
+    _emit('inspector', 'start', f'Analysing {len(columns)} columns: {", ".join(columns[:4])}…',
+          {'columns': columns})
     col_list = ', '.join(f'"{c}"' for c in columns)
     system   = ("You are an expert at reading financial spreadsheets. "
                 "Use inspect_column on ambiguous columns before deciding. "
@@ -496,12 +517,16 @@ def run_excel_agent(columns, sample_rows):
                 data_type = inp.pop("data_type", "other")
                 mapping   = inp
                 done      = True
+                _emit('inspector', 'tool_use', f'Mapping confirmed → data type: {data_type}',
+                      {'tool': 'set_column_mapping', 'mapping': mapping})
                 tool_results.append({"type": "tool_result", "tool_use_id": block.id,
                                      "content": "Mapping confirmed."})
             elif block.name == "inspect_column":
                 col  = (block.input or {}).get("column_name", "")
                 vals = [str(r.get(col, "")) for r in sample_rows
                         if str(r.get(col, "")).strip() not in ("", "nan", "None")][:8]
+                _emit('inspector', 'tool_use', f'Inspecting column "{col}"',
+                      {'tool': 'inspect_column', 'column': col, 'samples': vals})
                 tool_results.append({"type": "tool_result", "tool_use_id": block.id,
                                      "content": json.dumps(vals) if vals else '"(empty)"'})
 
@@ -510,7 +535,15 @@ def run_excel_agent(columns, sample_rows):
         if done or resp.stop_reason == "end_turn":
             break
 
+    _emit('inspector', 'complete', f'Column mapping done — {data_type}', {'mapping': mapping})
     return mapping, notes, issues, data_type
+
+
+# ── Agent Visualiser ──────────────────────────────────────────────────────
+
+@app.route('/game')
+def game_viewer():
+    return send_from_directory('static/game', 'index.html')
 
 
 # ── Auth routes ────────────────────────────────────────────────────────────
@@ -1397,6 +1430,7 @@ def delete_google_ads_campaign(cid):
 @app.route('/api/google-ads/suggest')
 @login_required
 def google_ads_suggest():
+    _emit('strategist', 'start', 'Building campaign recommendations from financial data…', {})
     uid  = current_uid()
     txns = Transaction.query.filter_by(user_id=uid).all()
 
@@ -1433,6 +1467,8 @@ Return ONLY a valid JSON array with exactly 3 objects, each with these keys:
 JSON:"""
 
     try:
+        _emit('strategist', 'tool_use', 'Generating ad campaign ideas…',
+              {'model': 'claude-haiku-4-5'})
         msg  = get_client().messages.create(
             model='claude-haiku-4-5', max_tokens=2048,
             messages=[{'role': 'user', 'content': prompt}])
@@ -1440,9 +1476,13 @@ JSON:"""
         s, e = text.find('['), text.rfind(']') + 1
         if s >= 0 and e > s:
             suggestions = json.loads(text[s:e])
+            _emit('strategist', 'complete', f'Generated {len(suggestions)} campaign suggestions',
+                  {'count': len(suggestions)})
             return jsonify({'success': True, 'suggestions': suggestions})
+        _emit('strategist', 'complete', 'No suggestions generated', {})
         return jsonify({'success': True, 'suggestions': []})
     except Exception as ex:
+        _emit('strategist', 'error', f'Error: {ex}', {})
         return jsonify({'error': str(ex)}), 500
 
 
@@ -1595,6 +1635,9 @@ def categorize():
     if not transactions:
         return jsonify({'error': 'No transactions'}), 400
 
+    _emit('sorter', 'start', f'Categorising {len(transactions)} transactions…',
+          {'count': len(transactions)})
+
     tx_text = '\n'.join(f"{i+1}. {t['date']} | {t['description']} | {t['amount']}"
                         for i, t in enumerate(transactions))
 
@@ -1612,6 +1655,8 @@ Transactions:
 JSON:"""
 
     try:
+        _emit('sorter', 'tool_use', 'Asking Claude to classify transactions…',
+              {'model': 'claude-haiku-4-5'})
         msg  = get_client().messages.create(model='claude-haiku-4-5', max_tokens=4096,
                                             messages=[{'role': 'user', 'content': prompt}])
         text = msg.content[0].text.strip()
@@ -1620,9 +1665,13 @@ JSON:"""
             parsed = json.loads(text[s:e])
             for item in parsed:
                 item['id'] = id_offset + item['id']
+            _emit('sorter', 'complete', f'Categorised {len(parsed)} transactions',
+                  {'count': len(parsed)})
             return jsonify({'success': True, 'categories': parsed})
+        _emit('sorter', 'complete', 'No categories returned', {})
         return jsonify({'success': True, 'categories': []})
     except Exception as ex:
+        _emit('sorter', 'error', f'Error: {ex}', {})
         print(f'Categorize error: {ex}')
         return jsonify({'error': str(ex)}), 500
 
@@ -1640,6 +1689,9 @@ def chat():
     if not message:
         return jsonify({'error': 'No message'}), 400
 
+    _emit('advisor', 'start', f'Answering question in {module} module…',
+          {'module': module, 'message_preview': message[:80]})
+
     context = build_db_context(module)
 
     system = f"""You are BooksAI, an expert AI bookkeeping assistant for small businesses.
@@ -1655,10 +1707,13 @@ Current module: {module}
     messages.append({'role': 'user', 'content': message})
 
     try:
+        _emit('advisor', 'tool_use', 'Thinking…', {'model': 'claude-sonnet-4-5'})
         resp = get_client().messages.create(model='claude-sonnet-4-5', max_tokens=1024,
                                             system=system, messages=messages)
+        _emit('advisor', 'complete', 'Response ready', {})
         return jsonify({'success': True, 'reply': resp.content[0].text})
     except Exception as e:
+        _emit('advisor', 'error', f'Error: {e}', {})
         return jsonify({'error': str(e)}), 500
 
 
@@ -1751,6 +1806,8 @@ Return ONLY the JSON object — no markdown fences, no explanation.
 
 def _call_claude_vision(file_bytes: bytes, media_type: str, filename: str):
     """Send a document or image to Claude and return parsed JSON."""
+    _emit('scanner', 'start', f'Scanning document: {filename}',
+          {'filename': filename, 'media_type': media_type, 'size_kb': len(file_bytes) // 1024})
     client = get_client()
 
     is_pdf = media_type == 'application/pdf' or filename.lower().endswith('.pdf')
@@ -1775,6 +1832,8 @@ def _call_claude_vision(file_bytes: bytes, media_type: str, filename: str):
             },
         }
 
+    _emit('scanner', 'tool_use', f'Sending {"PDF" if is_pdf else "image"} to Claude Vision…',
+          {'model': 'claude-opus-4-5'})
     resp = client.messages.create(
         model="claude-opus-4-5",
         max_tokens=2048,
@@ -1793,7 +1852,11 @@ def _call_claude_vision(file_bytes: bytes, media_type: str, filename: str):
         raw = raw.split("```")[1]
         if raw.startswith("json"):
             raw = raw[4:]
-    return json.loads(raw.strip())
+    result = json.loads(raw.strip())
+    doc_type = result.get('doc_type', 'document') if isinstance(result, dict) else 'document'
+    _emit('scanner', 'complete', f'Extracted data from {doc_type}',
+          {'doc_type': doc_type, 'filename': filename})
+    return result
 
 
 @app.route('/receipt', methods=['POST'])
@@ -2416,14 +2479,22 @@ with app.app_context():
     if User.query.count() == 0:
         admin_email = os.environ.get('ADMIN_EMAIL', 'admin@booksai.app')
         admin_pw    = os.environ.get('ADMIN_PASSWORD', 'changeme123')
-        admin       = User(email=admin_email, name='Admin', is_admin=True, plan='active')
+        admin       = User(email=admin_email, name='Admin', is_admin=True,
+                           plan='active', plan_tier='business', trial_ends_at=None)
         admin.set_password(admin_pw)
         db.session.add(admin)
         db.session.commit()
         print(f'[BooksAI] Admin account created: {admin_email}')
 
+    # Fix any existing admin users that got stuck with trial plan_tier
+    for admin_user in User.query.filter_by(is_admin=True).all():
+        if admin_user.plan_tier in ('trial', ''):
+            admin_user.plan_tier   = 'business'
+            admin_user.trial_ends_at = None
+    db.session.commit()
+
 port = int(os.environ.get('PORT', 8080))
 print(f'[BooksAI] Starting on port {port}', flush=True)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=port, debug=False)
+    socketio.run(app, host='0.0.0.0', port=port, debug=False)
