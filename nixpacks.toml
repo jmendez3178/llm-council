@@ -2,7 +2,7 @@
 nixPkgs = ["python311"]
 
 [phases.install]
-cmds = ["pip install -r requirements.txt"]
+cmds = ["python3 -m pip install -r requirements.txt"]
 
 [start]
 cmd = "sh -c 'gunicorn app:app --bind 0.0.0.0:${PORT:-8080} --workers 2 --timeout 120'"
