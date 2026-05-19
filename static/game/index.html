@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BooksAI — Agent Visualiser</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0d0d1a;
+    color: #e0e0ff;
+    font-family: 'Courier New', monospace;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+  }
+  header {
+    background: #12122a;
+    border-bottom: 1px solid #2a2a5a;
+    padding: 8px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+  header h1 { font-size: 16px; color: #a0a0ff; letter-spacing: 2px; text-transform: uppercase; }
+  #conn-status {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: #1a1a3a;
+    border: 1px solid #333;
+  }
+  #conn-status.connected { color: #4fffb0; border-color: #4fffb0; }
+  #conn-status.disconnected { color: #ff6060; border-color: #ff6060; }
+  .main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+  #game-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #0d0d1a;
+  }
+  #game-container canvas { display: block; }
+  .sidebar {
+    width: 320px;
+    background: #12122a;
+    border-left: 1px solid #2a2a5a;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .sidebar-section {
+    border-bottom: 1px solid #2a2a5a;
+    padding: 10px 12px;
+  }
+  .sidebar-section h2 {
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: #6060aa;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .agent-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .agent-card {
+    background: #1a1a3a;
+    border: 1px solid #2a2a5a;
+    border-radius: 6px;
+    padding: 7px 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: border-color 0.3s, background 0.3s;
+  }
+  .agent-card.active { border-color: #7070ff; background: #1e1e4a; }
+  .agent-card.complete { border-color: #4fffb0; }
+  .agent-card.error { border-color: #ff6060; }
+  .agent-icon { font-size: 18px; width: 24px; text-align: center; }
+  .agent-info { flex: 1; min-width: 0; }
+  .agent-name { font-size: 11px; font-weight: bold; color: #c0c0ff; }
+  .agent-status {
+    font-size: 10px;
+    color: #6060aa;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .agent-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #333;
+    flex-shrink: 0;
+  }
+  .agent-dot.idle { background: #444; }
+  .agent-dot.active { background: #7070ff; box-shadow: 0 0 6px #7070ff; }
+  .agent-dot.complete { background: #4fffb0; }
+  .agent-dot.error { background: #ff6060; }
+  #activity-log {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  #activity-log h2 {
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: #6060aa;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    position: sticky;
+    top: 0;
+    background: #12122a;
+    padding: 4px 0;
+  }
+  .log-entry {
+    background: #1a1a3a;
+    border-left: 3px solid #333;
+    border-radius: 0 4px 4px 0;
+    padding: 5px 8px;
+    font-size: 10px;
+    animation: fadeIn 0.3s ease;
+  }
+  .log-entry.start   { border-color: #7070ff; }
+  .log-entry.tool_use { border-color: #ffaa40; }
+  .log-entry.complete { border-color: #4fffb0; }
+  .log-entry.error   { border-color: #ff6060; }
+  .log-time  { color: #505080; font-size: 9px; }
+  .log-agent { color: #a0a0ff; font-weight: bold; }
+  .log-msg   { color: #c0c0e0; margin-top: 2px; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateX(8px); } to { opacity: 1; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>⚡ BooksAI Agent Visualiser</h1>
+  <span id="conn-status" class="disconnected">● Connecting…</span>
+  <a href="/" style="margin-left:auto;font-size:11px;color:#6060aa;text-decoration:none;">← Back to App</a>
+</header>
+<div class="main">
+  <div id="game-container"></div>
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <h2>Agents</h2>
+      <div class="agent-cards" id="agent-cards">
+        <div class="agent-card" id="card-inspector">
+          <span class="agent-icon">🔍</span>
+          <div class="agent-info">
+            <div class="agent-name">The Inspector</div>
+            <div class="agent-status" id="status-inspector">Idle — awaiting CSV upload</div>
+          </div>
+          <div class="agent-dot idle" id="dot-inspector"></div>
+        </div>
+        <div class="agent-card" id="card-sorter">
+          <span class="agent-icon">🗂️</span>
+          <div class="agent-info">
+            <div class="agent-name">The Sorter</div>
+            <div class="agent-status" id="status-sorter">Idle — awaiting transactions</div>
+          </div>
+          <div class="agent-dot idle" id="dot-sorter"></div>
+        </div>
+        <div class="agent-card" id="card-scanner">
+          <span class="agent-icon">📷</span>
+          <div class="agent-info">
+            <div class="agent-name">The Scanner</div>
+            <div class="agent-status" id="status-scanner">Idle — awaiting document</div>
+          </div>
+          <div class="agent-dot idle" id="dot-scanner"></div>
+        </div>
+        <div class="agent-card" id="card-advisor">
+          <span class="agent-icon">💬</span>
+          <div class="agent-info">
+            <div class="agent-name">The Advisor</div>
+            <div class="agent-status" id="status-advisor">Idle — awaiting chat message</div>
+          </div>
+          <div class="agent-dot idle" id="dot-advisor"></div>
+        </div>
+        <div class="agent-card" id="card-strategist">
+          <span class="agent-icon">📊</span>
+          <div class="agent-info">
+            <div class="agent-name">The Strategist</div>
+            <div class="agent-status" id="status-strategist">Idle — awaiting marketing request</div>
+          </div>
+          <div class="agent-dot idle" id="dot-strategist"></div>
+        </div>
+      </div>
+    </div>
+    <div id="activity-log">
+      <h2>Activity Log</h2>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.87.0/dist/phaser.min.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

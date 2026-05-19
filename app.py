@@ -32,10 +32,8 @@ app.secret_key = _secret_key
 db = SQLAlchemy(app)
 
 # ── Real-time visualiser (Flask-SocketIO) ──────────────────────────────────
-import eventlet
-eventlet.monkey_patch()
 from flask_socketio import SocketIO
-socketio = SocketIO(app, cors_allowed_origins='*', async_mode='eventlet')
+socketio = SocketIO(app, cors_allowed_origins='*', async_mode='threading')
 
 def _emit(agent_id: str, event_type: str, message: str, data: dict = None):
     """Broadcast an agent lifecycle event to all connected game viewers."""
