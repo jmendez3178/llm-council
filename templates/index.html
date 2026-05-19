@@ -416,6 +416,10 @@ textarea{resize:vertical;min-height:64px}
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-5"/></svg>
     Google Ads
   </button>
+  <button class="nav-item" onclick="navigate('instagram')" id="nav-instagram">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
+    Instagram
+  </button>
 
   <div class="sidebar-spacer"></div>
   <div class="sidebar-footer">
@@ -825,6 +829,90 @@ textarea{resize:vertical;min-height:64px}
       </div>
     </div>
 
+    <!-- Instagram -->
+    <div class="module" id="mod-instagram" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+        <div>
+          <h2 style="font-size:18px;font-weight:700;margin-bottom:4px">📱 Instagram</h2>
+          <p style="font-size:13px;color:var(--muted)">Post branded content directly to <strong>@tidydatajm</strong> via Meta Graph API</p>
+        </div>
+        <div id="ig-status-badge" style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)">
+          <span id="ig-dot" style="width:8px;height:8px;border-radius:50%;background:#ccc;display:inline-block"></span>
+          <span id="ig-status-text">Checking connection…</span>
+        </div>
+      </div>
+
+      <!-- Account info bar -->
+      <div id="ig-account-bar" style="display:none;background:var(--surface2);border-radius:10px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <div style="font-size:24px">📸</div>
+        <div>
+          <div id="ig-acct-name" style="font-weight:700;font-size:15px"></div>
+          <div id="ig-acct-stats" style="font-size:12px;color:var(--muted)"></div>
+        </div>
+      </div>
+
+      <!-- Create Post Form -->
+      <div style="background:var(--surface2);border-radius:12px;padding:20px;margin-bottom:20px">
+        <h3 style="font-size:14px;font-weight:700;margin-bottom:16px">Create &amp; Post</h3>
+        <div class="form-row cols-2" style="margin-bottom:14px">
+          <div class="form-group">
+            <label>Template Type</label>
+            <select id="ig-template-type" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:13px">
+              <option value="product">Feed — Product Showcase</option>
+              <option value="quote">Feed — Quote / Inspiration</option>
+              <option value="tip">Feed — Daily Tip</option>
+              <option value="testimonial">Feed — Testimonial</option>
+              <option value="bento">Feed — Bento Grid</option>
+              <option value="story_product">Story — Product</option>
+              <option value="story_promo">Story — Promo / Sale</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Title / Headline</label>
+            <input id="ig-title" placeholder="e.g. Thinking with AI" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:13px">
+          </div>
+        </div>
+        <div class="form-row cols-2" style="margin-bottom:14px">
+          <div class="form-group">
+            <label>Subtitle / Author</label>
+            <input id="ig-subtitle" placeholder="e.g. — James Clear" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:13px">
+          </div>
+          <div class="form-group">
+            <label>Price (optional)</label>
+            <input id="ig-price" placeholder="e.g. $24" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:13px">
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:16px">
+          <label>Caption</label>
+          <textarea id="ig-caption" rows="3" placeholder="Your Instagram caption… end with a question to boost engagement! #BooksAi" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:13px;resize:vertical"></textarea>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-ghost" onclick="igPreview()" id="ig-preview-btn">👁 Preview Image</button>
+          <button class="btn btn-primary" onclick="igPostNow()" id="ig-post-btn" style="background:#C8F542;color:#0A0A0A;border:none;font-weight:700">📤 Post to Instagram</button>
+        </div>
+        <!-- Preview -->
+        <div id="ig-preview-area" style="display:none;margin-top:16px;text-align:center">
+          <img id="ig-preview-img" style="max-width:320px;max-height:320px;border-radius:10px;border:1px solid var(--border)" alt="Preview">
+          <div style="font-size:11px;color:var(--muted);margin-top:6px">Preview — actual post will be full resolution</div>
+        </div>
+        <div id="ig-post-result" style="display:none;margin-top:12px;padding:10px 14px;border-radius:8px;font-size:13px"></div>
+      </div>
+
+      <!-- Post History -->
+      <div>
+        <h3 style="font-size:14px;font-weight:700;margin-bottom:12px">Post History</h3>
+        <div id="ig-history-wrap">
+          <table class="data-table" id="ig-history-table">
+            <thead><tr>
+              <th>Date</th><th>Template</th><th>Caption</th><th>Status</th><th>Media ID</th>
+            </tr></thead>
+            <tbody id="ig-history-body"></tbody>
+          </table>
+          <p id="ig-no-history" style="text-align:center;color:var(--muted);font-size:13px;padding:24px">No posts yet. Create your first post above!</p>
+        </div>
+      </div>
+    </div>
+
     <!-- Google Ads -->
     <div class="module" id="mod-googleads">
 
@@ -1214,7 +1302,8 @@ let currentPayrollTab = 'manage';
 const MODULE_TITLES = {
   dashboard:'Dashboard', ledger:'Ledger', pl:'P&L Statement',
   invoices:'Invoices', expenses:'Expenses', payroll:'Payroll', marketing:'Marketing',
-  googleads:'Google Ads'
+  googleads:'Google Ads',
+  instagram:'Instagram'
 };
 const MODULE_SUBS = {
   dashboard:'Overview of your business finances',
@@ -1224,7 +1313,8 @@ const MODULE_SUBS = {
   expenses:'All expenses across every data source — filter by date, category, or source',
   payroll:'Manage employees and pay runs',
   marketing:'Campaign performance and ROI',
-  googleads:'Manage Google Ads campaigns and get AI suggestions'
+  googleads:'Manage Google Ads campaigns and get AI suggestions',
+  instagram:'Post branded content directly to @tidydatajm'
 };
 const MODULE_CHIPS = {
   dashboard:["What's my net profit?","Top expense categories","Any financial concerns?","Year-to-date summary"],
@@ -1273,6 +1363,7 @@ async function loadModule(mod) {
   if (mod === 'payroll')    await loadPayroll();
   if (mod === 'marketing')  await loadMarketing();
   if (mod === 'googleads')  await loadGoogleAds();
+  if (mod === 'instagram')  await loadInstagram();
 }
 
 // ── Dashboard ──────────────────────────────────────────────────────────────
@@ -2746,6 +2837,119 @@ function apiFetch(url, opts = {}) {
   // Handle Google Ads OAuth callback redirect
   _checkGaCallbackResult();
 })();
+</script>
+
+<script>
+// ── Instagram ───────────────────────────────────────────────────────────────
+
+async function loadInstagram() {
+  // Check connection status
+  try {
+    const d = await api('GET', '/api/instagram/status');
+    const dot  = $('ig-dot');
+    const txt  = $('ig-status-text');
+    const bar  = $('ig-account-bar');
+    if (d.connected) {
+      dot.style.background = '#22c55e';
+      const acct = d.account || {};
+      txt.textContent = `@${acct.username || 'connected'}`;
+      if (bar) {
+        bar.style.display = 'flex';
+        $('ig-acct-name').textContent = acct.name || acct.username || '';
+        $('ig-acct-stats').textContent =
+          `${(acct.followers_count||0).toLocaleString()} followers · ${(acct.media_count||0)} posts`;
+      }
+    } else {
+      dot.style.background = '#ef4444';
+      txt.textContent = d.message || 'Not connected — add env vars';
+    }
+  } catch(e) {
+    $('ig-status-text').textContent = 'Error checking status';
+  }
+  // Load post history
+  await igLoadHistory();
+}
+
+async function igPreview() {
+  const btn = $('ig-preview-btn');
+  btn.disabled = true; btn.textContent = '⏳ Generating…';
+  try {
+    const d = await api('POST', '/api/instagram/generate', {
+      template_type: $('ig-template-type').value,
+      title:    $('ig-title').value,
+      subtitle: $('ig-subtitle').value,
+      price:    $('ig-price').value,
+    });
+    if (d.success) {
+      $('ig-preview-img').src = d.url + '?t=' + Date.now();
+      $('ig-preview-area').style.display = 'block';
+    } else {
+      alert('Preview error: ' + (d.error || 'Unknown'));
+    }
+  } catch(e) { alert('Error: ' + e); }
+  btn.disabled = false; btn.textContent = '👁 Preview Image';
+}
+
+async function igPostNow() {
+  const caption = $('ig-caption').value.trim();
+  if (!caption) { alert('Please enter a caption before posting.'); return; }
+  const btn = $('ig-post-btn');
+  btn.disabled = true; btn.textContent = '⏳ Posting…';
+  const result = $('ig-post-result');
+  result.style.display = 'none';
+  try {
+    const d = await api('POST', '/api/instagram/post', {
+      template_type: $('ig-template-type').value,
+      title:    $('ig-title').value,
+      subtitle: $('ig-subtitle').value,
+      price:    $('ig-price').value,
+      caption:  caption,
+    });
+    result.style.display = 'block';
+    if (d.success) {
+      result.style.background = '#dcfce7';
+      result.style.color = '#166534';
+      result.innerHTML = `✅ <strong>Posted!</strong> Media ID: ${d.ig_media_id} — <a href="https://www.instagram.com/tidydatajm/" target="_blank" style="color:#166534">View on Instagram →</a>`;
+      $('ig-preview-img').src = d.image_url + '?t=' + Date.now();
+      $('ig-preview-area').style.display = 'block';
+      await igLoadHistory();
+    } else {
+      result.style.background = '#fee2e2';
+      result.style.color = '#991b1b';
+      result.innerHTML = `❌ <strong>Failed:</strong> ${d.error || 'Unknown error'}`;
+      if (d.image_url) {
+        $('ig-preview-img').src = d.image_url + '?t=' + Date.now();
+        $('ig-preview-area').style.display = 'block';
+        result.innerHTML += '<br><small>Image was generated but not posted. Check your API credentials.</small>';
+      }
+    }
+  } catch(e) { alert('Error: ' + e); }
+  btn.disabled = false; btn.textContent = '📤 Post to Instagram';
+}
+
+async function igLoadHistory() {
+  try {
+    const posts = await api('GET', '/api/instagram/posts');
+    const tbody = $('ig-history-body');
+    const none  = $('ig-no-history');
+    const table = $('ig-history-table');
+    if (!posts || posts.length === 0) {
+      table.style.display = 'none';
+      none.style.display = 'block';
+      return;
+    }
+    table.style.display = '';
+    none.style.display = 'none';
+    tbody.innerHTML = posts.map(p => `
+      <tr>
+        <td style="font-size:12px">${p.created_at}</td>
+        <td><span style="background:var(--surface2);padding:2px 8px;border-radius:4px;font-size:12px">${p.template_type}</span></td>
+        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px" title="${p.caption}">${p.caption || '—'}</td>
+        <td><span style="color:${p.status==='posted'?'#22c55e':p.status==='failed'?'#ef4444':'#f59e0b'};font-weight:700;font-size:12px">${p.status}</span></td>
+        <td style="font-size:11px;color:var(--muted)">${p.ig_media_id || p.error_msg || '—'}</td>
+      </tr>`).join('');
+  } catch(e) { /* silent */ }
+}
 </script>
 
 <!-- Password Change Modal -->

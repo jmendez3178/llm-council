@@ -334,6 +334,27 @@ class GoogleAdsCampaign(db.Model):
         }
 
 
+class InstagramPost(db.Model):
+    id            = db.Column(db.Integer, primary_key=True)
+    user_id       = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    template_type = db.Column(db.String(50))          # product, quote, tip, testimonial, story_product, story_promo, bento
+    caption       = db.Column(db.Text, default='')
+    image_path    = db.Column(db.String(300))         # relative path inside static/
+    ig_media_id   = db.Column(db.String(100), default='')
+    status        = db.Column(db.String(20), default='pending')  # pending | posted | failed
+    error_msg     = db.Column(db.Text, default='')
+    created_at    = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id, 'template_type': self.template_type,
+            'caption': self.caption, 'image_path': self.image_path,
+            'ig_media_id': self.ig_media_id, 'status': self.status,
+            'error_msg': self.error_msg,
+            'created_at': self.created_at.strftime('%Y-%m-%d %H:%M'),
+        }
+
+
 # ── Constants ──────────────────────────────────────────────────────────────
 
 CATEGORIES = [
@@ -2477,6 +2498,395 @@ with app.app_context():
             admin_user.plan_tier   = 'business'
             admin_user.trial_ends_at = None
     db.session.commit()
+
+# ═══════════════════════════════════════════════════════════════
+#  INSTAGRAM GRAPH API INTEGRATION
+# ═══════════════════════════════════════════════════════════════
+
+import uuid as _uuid
+from PIL import Image, ImageDraw, ImageFont
+
+# Brand colours (Gen Z palette)
+IG_BLACK  = (10, 10, 10)
+IG_LIME   = (200, 245, 66)
+IG_VIOLET = (139, 92, 246)
+IG_CORAL  = (255, 107, 107)
+IG_ORANGE = (255, 107, 53)
+IG_WHITE  = (255, 255, 255)
+IG_GREY   = (160, 160, 160)
+
+GENERATED_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'generated')
+os.makedirs(GENERATED_DIR, exist_ok=True)
+
+IG_ACCESS_TOKEN = os.environ.get('INSTAGRAM_ACCESS_TOKEN', '')
+IG_BUSINESS_ID  = os.environ.get('INSTAGRAM_BUSINESS_ACCOUNT_ID', '')
+
+
+def _ig_font(size=48, bold=False):
+    """Return a PIL font (falls back to default if Inter not available)."""
+    try:
+        # Try system fonts in order of preference
+        for path in [
+            '/System/Library/Fonts/Helvetica.ttc',
+            '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+            '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf',
+        ]:
+            if os.path.exists(path):
+                return ImageFont.truetype(path, size)
+    except Exception:
+        pass
+    return ImageFont.load_default()
+
+
+def _draw_rounded_rect(draw, xy, radius, fill):
+    x0, y0, x1, y1 = xy
+    draw.rectangle([x0 + radius, y0, x1 - radius, y1], fill=fill)
+    draw.rectangle([x0, y0 + radius, x1, y1 - radius], fill=fill)
+    draw.ellipse([x0, y0, x0 + radius * 2, y0 + radius * 2], fill=fill)
+    draw.ellipse([x1 - radius * 2, y0, x1, y0 + radius * 2], fill=fill)
+    draw.ellipse([x0, y1 - radius * 2, x0 + radius * 2, y1], fill=fill)
+    draw.ellipse([x1 - radius * 2, y1 - radius * 2, x1, y1], fill=fill)
+
+
+def _wrap_text(text, font, max_width, draw):
+    """Wrap text to fit max_width pixels."""
+    words = text.split()
+    lines, current = [], []
+    for word in words:
+        test = ' '.join(current + [word])
+        bbox = draw.textbbox((0, 0), test, font=font)
+        if bbox[2] - bbox[0] > max_width and current:
+            lines.append(' '.join(current))
+            current = [word]
+        else:
+            current.append(word)
+    if current:
+        lines.append(' '.join(current))
+    return lines
+
+
+def generate_instagram_image(template_type: str, title: str = '', subtitle: str = '', price: str = '') -> str:
+    """
+    Generate a Pillow image for the given template type.
+    Returns the filename (relative to static/) of the saved JPEG.
+    """
+    is_story = template_type.startswith('story_')
+    W, H = (1080, 1920) if is_story else (1080, 1080)
+
+    img  = Image.new('RGB', (W, H), IG_BLACK)
+    draw = ImageDraw.Draw(img)
+
+    # ── Shared helpers ──────────────────────────────────────────
+    font_xl  = _ig_font(120, bold=True)
+    font_lg  = _ig_font(80,  bold=True)
+    font_md  = _ig_font(56,  bold=True)
+    font_sm  = _ig_font(40)
+    font_xs  = _ig_font(32)
+    font_logo= _ig_font(44,  bold=True)
+    margin   = 80
+
+    def draw_logo(y=60):
+        draw.text((margin, y), 'Books', font=font_logo, fill=IG_WHITE)
+        w_books = draw.textbbox((0,0), 'Books', font=font_logo)[2]
+        draw.text((margin + w_books, y), 'Ai', font=font_logo, fill=IG_LIME)
+
+    # ── Top lime bar ────────────────────────────────────────────
+    draw.rectangle([0, 0, W, 12], fill=IG_LIME)
+
+    # ── Template-specific layouts ────────────────────────────────
+    if template_type == 'product':
+        draw_logo(70)
+        # Book cover block
+        bx0, by0, bx1, by1 = 340, 180, 740, 580
+        _draw_rounded_rect(draw, (bx0, by0, bx1, by1), 16, IG_VIOLET)
+        draw.rectangle([bx0, by0, bx0+28, by1], fill=(80, 40, 160))
+        title_text = title or 'Thinking with AI'
+        lines = _wrap_text(title_text, font_sm, (bx1-bx0-40), draw)
+        ty = by0 + (by1-by0)//2 - len(lines)*30
+        for ln in lines:
+            draw.text(((bx0+bx1)//2, ty), ln, font=font_sm, fill=IG_WHITE, anchor='mm')
+            ty += 60
+        # Headline
+        draw.text((W//2, 660), title_text, font=font_lg, fill=IG_WHITE, anchor='mm')
+        # CTA pill
+        _draw_rounded_rect(draw, (290, 760, 790, 860), 50, IG_LIME)
+        draw.text((W//2, 810), 'Get Your Copy →', font=font_md, fill=IG_BLACK, anchor='mm')
+
+    elif template_type == 'quote':
+        # Violet background
+        img.paste(Image.new('RGB', (W, H), IG_VIOLET), (0, 0))
+        draw = ImageDraw.Draw(img)
+        # Glow circle
+        for r, alpha in [(500, 20), (350, 15), (200, 12)]:
+            overlay = Image.new('RGB', (W, H), IG_LIME)
+            mask = Image.new('L', (W, H), 0)
+            md2 = ImageDraw.Draw(mask)
+            md2.ellipse([W-r, -r, W+r, r], fill=alpha)
+            img.paste(overlay, (0, 0), mask)
+        draw = ImageDraw.Draw(img)
+        draw.text((margin, 60), 'BooksAi', font=font_logo, fill=IG_LIME)
+        # Big quote mark
+        draw.text((margin-20, 100), '“', font=_ig_font(280), fill=(255,255,255,20), anchor='lt')
+        q = title or '“The person who reads every day is building a mind that compounds.”'
+        lines = _wrap_text(q, font_md, W - 2*margin, draw)
+        y = 320
+        for ln in lines:
+            draw.text((margin, y), ln, font=font_md, fill=IG_WHITE)
+            y += 76
+        author = subtitle or '— James Clear'
+        draw.rectangle([margin, y+20, margin+60, y+24], fill=IG_LIME)
+        draw.text((margin, y+40), author, font=font_sm, fill=IG_LIME)
+
+    elif template_type == 'tip':
+        img.paste(Image.new('RGB', (W, H), IG_WHITE), (0, 0))
+        draw = ImageDraw.Draw(img)
+        draw.rectangle([0, 0, W, 12], fill=IG_LIME)
+        draw.text((margin, 70), 'Daily Tip', font=_ig_font(36), fill=IG_ORANGE)
+        tip_title = title or 'Read Smarter, Not Longer'
+        lines = _wrap_text(tip_title, _ig_font(90, bold=True), W - 2*margin, draw)
+        y = 130
+        for ln in lines:
+            draw.text((margin, y), ln, font=_ig_font(90, bold=True), fill=IG_BLACK)
+            y += 110
+        # Card
+        _draw_rounded_rect(draw, (margin, y+30, W-margin, y+250), 24, IG_BLACK)
+        tip_body = subtitle or 'Read 20 focused minutes, then summarize in 3 bullet points. Retention increases 40%.'
+        blines = _wrap_text(tip_body, font_sm, W-2*margin-80, draw)
+        ty = y + 80
+        for bl in blines:
+            draw.text((margin+40, ty), bl, font=font_sm, fill=IG_WHITE)
+            ty += 60
+        draw.text((margin, H-120), 'BooksAi', font=font_logo, fill=IG_BLACK)
+        draw.text((margin + 200, H-120), '· Follow for daily tips', font=font_xs, fill=IG_ORANGE)
+
+    elif template_type == 'testimonial':
+        img.paste(Image.new('RGB', (W, H), IG_WHITE), (0, 0))
+        draw = ImageDraw.Draw(img)
+        draw.rectangle([0, 0, W, 12], fill=IG_LIME)
+        # Stars
+        draw.text((margin, 80), '★★★★★', font=_ig_font(64), fill=IG_ORANGE)
+        # Review text
+        review = title or '"This book completely changed how I learn. Finished it in a weekend and bought three more."'
+        rlines = _wrap_text(review, font_md, W-2*margin, draw)
+        y = 200
+        for rl in rlines:
+            draw.text((margin, y), rl, font=font_md, fill=IG_BLACK)
+            y += 80
+        # Avatar circle
+        draw.ellipse([margin, y+40, margin+100, y+140], fill=IG_VIOLET)
+        draw.text((margin+50, y+90), 'S', font=font_md, fill=IG_WHITE, anchor='mm')
+        draw.text((margin+120, y+50), 'Sarah M.', font=font_sm, fill=IG_BLACK)
+        draw.text((margin+120, y+100), 'Verified Buyer', font=font_xs, fill=IG_GREY)
+        # Book chip
+        _draw_rounded_rect(draw, (margin, y+180, W-margin, y+280), 16, (240,240,240))
+        draw.text((margin+30, y+210), 'Thinking with AI', font=font_sm, fill=IG_BLACK)
+        draw.text((W-margin-130, y+210), 'Shop →', font=font_sm, fill=IG_VIOLET)
+
+    elif template_type == 'bento':
+        draw_logo(70)
+        # Title bar
+        _draw_rounded_rect(draw, (margin, 180, W-margin, 340), 20, IG_VIOLET)
+        bt = title or 'Thinking with AI'
+        draw.text((W//2, 260), bt, font=font_md, fill=IG_WHITE, anchor='mm')
+        # Bento tiles  (2×3 grid)
+        tile_w = (W - 2*margin - 20) // 2
+        tiles = [
+            (IG_LIME,   'PRICE',    price or '$24',    'Was $49'),
+            (IG_BLACK,  'RATING',   '★ 4.9',           '2.1k reviews'),
+            (IG_BLACK,  'PAGES',    '280',             'pages'),
+            ((30,20,60),'CATEGORY', 'AI & Mindset',    ''),
+        ]
+        tx, ty = margin, 370
+        for i, (bg, label, val, sub) in enumerate(tiles):
+            col = i % 2
+            row = i // 2
+            x0 = margin + col*(tile_w+20)
+            y0 = ty + row*200
+            _draw_rounded_rect(draw, (x0, y0, x0+tile_w, y0+180), 16, bg)
+            draw.text((x0+24, y0+20), label, font=font_xs, fill=IG_GREY if bg==IG_BLACK else (60,60,60))
+            draw.text((x0+24, y0+60), val,   font=_ig_font(68,bold=True), fill=IG_BLACK if bg==IG_LIME else IG_WHITE)
+            if sub:
+                draw.text((x0+24, y0+148), sub, font=font_xs, fill=(80,80,80) if bg==IG_LIME else IG_GREY)
+        # CTA pill
+        _draw_rounded_rect(draw, (margin, 810, W-margin, 920), 50, IG_CORAL)
+        draw.text((W//2, 865), 'Get it Now →', font=font_md, fill=IG_WHITE, anchor='mm')
+
+    elif template_type in ('story_product', 'story_promo'):
+        draw_logo(80)
+        if template_type == 'story_product':
+            # Book cover
+            bx0, by0, bx1, by1 = 340, 200, 740, 720
+            _draw_rounded_rect(draw, (bx0, by0, bx1, by1), 20, IG_VIOLET)
+            draw.rectangle([bx0, by0, bx0+32, by1], fill=(80,40,160))
+            bt = title or 'Thinking with AI'
+            draw.text(((bx0+bx1)//2, (by0+by1)//2), bt, font=font_md, fill=IG_WHITE, anchor='mm')
+            # Headline
+            hl = subtitle or 'Think Smarter'
+            draw.text((W//2, 840), hl, font=font_xl, fill=IG_WHITE, anchor='mm')
+            # CTA
+            _draw_rounded_rect(draw, (240, 1620, 840, 1760), 56, IG_LIME)
+            draw.text((W//2, 1690), 'Get Your Copy →', font=font_md, fill=IG_BLACK, anchor='mm')
+        else:  # story_promo
+            # Badge
+            _draw_rounded_rect(draw, (340, 200, 740, 290), 40, IG_CORAL)
+            draw.text((W//2, 245), 'LIMITED OFFER', font=font_sm, fill=IG_WHITE, anchor='mm')
+            # Old price
+            draw.text((W//2, 370), price and f'Was {price}' or 'Was $49.99', font=font_md, fill=IG_GREY, anchor='mm')
+            # Big price
+            draw.text((W//2, 600), '$24', font=_ig_font(300, bold=True), fill=IG_WHITE, anchor='mm')
+            # Save badge
+            _draw_rounded_rect(draw, (350, 770, 730, 860), 40, IG_LIME)
+            draw.text((W//2, 815), 'Save 50% Today', font=font_sm, fill=IG_BLACK, anchor='mm')
+            # Product name
+            pn = title or 'AI Reading Bundle'
+            draw.text((W//2, 960), pn, font=font_lg, fill=IG_WHITE, anchor='mm')
+            # CTA
+            _draw_rounded_rect(draw, (200, 1620, 880, 1760), 56, IG_LIME)
+            draw.text((W//2, 1690), 'Claim Now →', font=font_md, fill=IG_BLACK, anchor='mm')
+            draw.text((W//2, 1790), '⏱  Ends at midnight', font=font_xs, fill=IG_GREY, anchor='mm')
+
+    else:
+        # Generic fallback — simple branded card
+        draw_logo(70)
+        t = title or 'BooksAi'
+        draw.text((W//2, H//2), t, font=font_lg, fill=IG_WHITE, anchor='mm')
+
+    # Save
+    filename = f'generated/{_uuid.uuid4().hex}.jpg'
+    img.save(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', filename), 'JPEG', quality=92)
+    return filename
+
+
+def _ig_post(image_url: str, caption: str, is_story: bool = False) -> tuple[bool, str, str]:
+    """
+    Post to Instagram via Graph API.
+    Returns (success, ig_media_id, error_message).
+    """
+    import httpx
+    token = IG_ACCESS_TOKEN
+    ig_id = IG_BUSINESS_ID
+    if not token or not ig_id:
+        return False, '', 'INSTAGRAM_ACCESS_TOKEN or INSTAGRAM_BUSINESS_ACCOUNT_ID not set in env vars.'
+
+    base = f'https://graph.facebook.com/v19.0/{ig_id}'
+
+    # Step 1: create media container
+    payload = {'image_url': image_url, 'caption': caption, 'access_token': token}
+    if is_story:
+        payload['media_type'] = 'STORIES'
+
+    try:
+        r = httpx.post(f'{base}/media', data=payload, timeout=30)
+        data = r.json()
+        if 'id' not in data:
+            return False, '', data.get('error', {}).get('message', str(data))
+        container_id = data['id']
+
+        # Step 2: publish
+        r2 = httpx.post(f'{base}/media_publish',
+                         data={'creation_id': container_id, 'access_token': token},
+                         timeout=30)
+        data2 = r2.json()
+        if 'id' not in data2:
+            return False, '', data2.get('error', {}).get('message', str(data2))
+        return True, data2['id'], ''
+    except Exception as e:
+        return False, '', str(e)
+
+
+# ── Instagram API Routes ────────────────────────────────────────────────────
+
+@app.route('/api/instagram/status')
+@login_required
+def ig_status():
+    token = IG_ACCESS_TOKEN
+    ig_id = IG_BUSINESS_ID
+    if not token or not ig_id:
+        return jsonify({'connected': False, 'message': 'Credentials not configured in environment.'})
+    try:
+        import httpx
+        r = httpx.get(
+            f'https://graph.facebook.com/v19.0/{ig_id}',
+            params={'fields': 'name,username,followers_count,media_count,profile_picture_url',
+                    'access_token': token},
+            timeout=10
+        )
+        d = r.json()
+        if 'error' in d:
+            return jsonify({'connected': False, 'message': d['error'].get('message', 'API error')})
+        return jsonify({'connected': True, 'account': d})
+    except Exception as e:
+        return jsonify({'connected': False, 'message': str(e)})
+
+
+@app.route('/api/instagram/generate', methods=['POST'])
+@login_required
+def ig_generate():
+    body = request.get_json() or {}
+    ttype    = body.get('template_type', 'product')
+    title    = body.get('title', '')
+    subtitle = body.get('subtitle', '')
+    price    = body.get('price', '')
+
+    try:
+        filename = generate_instagram_image(ttype, title, subtitle, price)
+        # Build public URL using request host
+        base_url = request.host_url.rstrip('/')
+        return jsonify({'success': True, 'filename': filename, 'url': f'{base_url}/static/{filename}'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/instagram/post', methods=['POST'])
+@login_required
+def ig_post():
+    body     = request.get_json() or {}
+    ttype    = body.get('template_type', 'product')
+    caption  = body.get('caption', '')
+    title    = body.get('title', '')
+    subtitle = body.get('subtitle', '')
+    price    = body.get('price', '')
+    is_story = ttype.startswith('story_')
+
+    uid = session['user_id']
+
+    # Generate image
+    try:
+        filename = generate_instagram_image(ttype, title, subtitle, price)
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Image generation failed: {e}'}), 500
+
+    base_url  = request.host_url.rstrip('/')
+    image_url = f'{base_url}/static/{filename}'
+
+    # Post to Instagram
+    success, media_id, err = _ig_post(image_url, caption, is_story=is_story)
+
+    post = InstagramPost(
+        user_id=uid, template_type=ttype, caption=caption,
+        image_path=filename, ig_media_id=media_id,
+        status='posted' if success else 'failed',
+        error_msg=err
+    )
+    db.session.add(post)
+    db.session.commit()
+
+    if success:
+        return jsonify({'success': True, 'ig_media_id': media_id, 'image_url': image_url, 'post_id': post.id})
+    else:
+        return jsonify({'success': False, 'error': err, 'image_url': image_url, 'post_id': post.id}), 400
+
+
+@app.route('/api/instagram/posts')
+@login_required
+def ig_posts():
+    uid   = session['user_id']
+    posts = InstagramPost.query.filter_by(user_id=uid).order_by(InstagramPost.created_at.desc()).limit(50).all()
+    return jsonify([p.to_dict() for p in posts])
+
+
+# ── end Instagram section ───────────────────────────────────────────────────
+
 
 port = int(os.environ.get('PORT', 8080))
 print(f'[BooksAI] Starting on port {port}', flush=True)
