@@ -2891,6 +2891,10 @@ def ig_posts():
 
 # ── end Instagram section ───────────────────────────────────────────────────
 
+@app.route('/api/version')
+def api_version():
+    return jsonify({'version': 'bfca28e', 'pil': PIL_AVAILABLE, 'instagram': True})
+
 
 port = int(os.environ.get('PORT', 8080))
 print(f'[BooksAI] Starting on port {port}', flush=True)
