@@ -2504,7 +2504,11 @@ with app.app_context():
 # ═══════════════════════════════════════════════════════════════
 
 import uuid as _uuid
-from PIL import Image, ImageDraw, ImageFont
+try:
+    from PIL import Image, ImageDraw, ImageFont
+    PIL_AVAILABLE = True
+except ImportError:
+    PIL_AVAILABLE = False
 
 # Brand colours (Gen Z palette)
 IG_BLACK  = (10, 10, 10)
